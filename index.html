@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TFD">
+<title>TFD — Tactical Flight Deck</title>
+<style>
+/* Offline-safe font fallbacks */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: local('Arial Narrow'), local('Impact'), local('Arial');
+  font-weight: 400 800;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet" media="not all" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet"></noscript>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --gold:#C8991A;--orng:#E05A20;--red:#C0392B;--grn:#22C55E;--blu:#3B82F6;--cyan:#06B6D4;--amber:#F59E0B;
+  --bg:#080B11;--bg2:#0E1219;--bg3:#141924;--card:#161D28;--card2:#1C2435;
+  --bdr:#232D3F;--bdr2:#2D3A52;--txt:#E2E8F4;--sub:#7A8BA8;--muted:#3D4F6A;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+html{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;}
+body{min-height:100vh;overflow-x:hidden;}
+
+#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .6s;}
+#splash.out{opacity:0;pointer-events:none;}
+.sp-tfd{font-family:'Barlow Condensed',sans-serif;font-size:80px;font-weight:800;letter-spacing:6px;color:var(--gold);line-height:1;}
+.sp-sub{font-size:12px;color:var(--sub);letter-spacing:4px;margin-top:8px;font-family:'Share Tech Mono',monospace;}
+.sp-line{width:60px;height:1px;background:var(--gold);margin:28px auto;}
+.sp-co{font-size:14px;color:var(--txt);letter-spacing:3px;font-family:'Barlow Condensed',sans-serif;font-weight:600;}
+.sp-ver{font-size:10px;color:var(--muted);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-top:8px;}
+
+#app{display:flex;flex-direction:column;min-height:100vh;}
+
+.topbar{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:calc(var(--safe-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.tfd-badge{background:var(--gold);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:2px;padding:4px 10px;border-radius:3px;}
+.tb-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--txt);letter-spacing:.5px;margin-left:10px;}
+.tb-sub{font-size:10px;color:var(--sub);font-family:'Share Tech Mono',monospace;margin-left:10px;}
+.live-pill{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--bdr2);border-radius:20px;padding:5px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--gold);}
+.lpulse{width:7px;height:7px;border-radius:50%;background:var(--grn);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.utc-pill{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--bdr);border-radius:6px;padding:4px 9px;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--cyan);letter-spacing:.5px;}
+
+.phase-nav{display:flex;overflow-x:auto;gap:0;background:var(--bg3);border-bottom:1px solid var(--bdr);scrollbar-width:none;}
+.phase-nav::-webkit-scrollbar{display:none;}
+.pn{flex-shrink:0;padding:10px 15px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--sub);border-bottom:2px solid transparent;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap;transition:all .12s;}
+.pn.on{color:var(--gold);border-bottom-color:var(--gold);}
+
+.alert-strip{background:#1A0D03;border-bottom:1px solid #3D2009;padding:8px 14px;display:flex;gap:8px;font-size:11px;color:#E8A060;font-family:'Share Tech Mono',monospace;}
+.alert-strip.hide{display:none;}
+
+.main{padding:14px 14px calc(72px + var(--safe-bot));}
+.phase{display:none;}.phase.on{display:block;}
+
+.sh{display:flex;align-items:center;gap:10px;margin:20px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);}
+.sh:first-child{margin-top:4px;}
+.sn{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--muted);}
+.st{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--txt);letter-spacing:.4px;}
+.sb-tag{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;padding:3px 7px;border-radius:3px;}
+.sb-m{background:#160404;color:var(--red);border:1px solid #3A0808;}
+.sb-c{background:#04120A;color:var(--grn);border:1px solid #0A3A1A;}
+
+.cl{display:flex;flex-direction:column;gap:2px;margin-bottom:6px;}
+.ci{display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:11px 12px;cursor:pointer;transition:background .1s;}
+.ci:active{background:var(--card2);}
+.ci.done{background:#060E08;border-color:#0D2A14;}
+.ci.done .ct{color:var(--sub);text-decoration:line-through;text-decoration-color:var(--muted);}
+.ck{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--bdr2);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:var(--bg3);transition:all .15s;}
+.ci.done .ck{background:var(--grn);border-color:var(--grn);}
+.ci.done .ck::after{content:'✓';font-size:13px;color:#000;font-weight:800;}
+.cb{flex:1;min-width:0;}
+.ct{font-size:14px;color:var(--txt);line-height:1.45;}
+.cs{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.45;}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.tg{font-family:'Share Tech Mono',monospace;font-size:10px;padding:2px 6px;border-radius:3px;border:1px solid var(--bdr);}
+.tg{background:var(--bg3);color:var(--sub);}
+.tw{background:#120900;color:var(--amber);border-color:#3A2000;}
+.tc{background:#120000;color:var(--red);border-color:#3A0000;}
+.ti{background:#00071A;color:var(--blu);border-color:#00163A;}
+.tok{background:#00100A;color:var(--grn);border-color:#003A18;}
+.refs{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:7px;border-top:1px solid var(--bdr);}
+.rl{display:inline-flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold);text-decoration:none;background:#130E00;border:1px solid #362800;border-radius:3px;padding:3px 7px;}
+.rl:active{background:#231800;}
+.rl.ro{color:var(--orng);background:#130600;border-color:#361200;}
+.rl.rb{color:var(--cyan);background:#00100F;border-color:#003A38;}
+
+.cond{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:12px;margin-bottom:10px;}
+.cdh{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.cdi{font-size:18px;}
+.cdt{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--txt);}
+.cds{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:11px;padding:3px 9px;border-radius:10px;}
+.cds.act{background:#1A0800;color:var(--orng);border:1px solid #5A2000;}
+.cds.stby{background:var(--bg3);color:var(--sub);border:1px solid var(--bdr);}
+
+.info{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px;color:var(--sub);line-height:1.6;}
+.info strong{color:var(--txt);}
+
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:10px;}
+.dc{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:12px;text-decoration:none;display:block;position:relative;overflow:hidden;transition:background .1s;}
+.dc:active{background:var(--card2);}
+.dc.oc{background:#120A02;}.dc.bc{background:#020A12;}.dc.gc{background:#0E1016;}
+.dn{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;line-height:1;color:var(--gold);}
+.dc.oc .dn{color:var(--orng);}.dc.bc .dn{color:var(--blu);}.dc.gc .dn{color:var(--muted);}
+.dm{font-size:12px;color:var(--txt);font-weight:500;line-height:1.3;margin-top:4px;}
+.dsb{font-size:10px;color:var(--sub);margin-top:2px;line-height:1.3;}
+.dpg{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--grn);margin-top:7px;padding-top:6px;border-top:1px solid var(--bdr);}
+.dc.oc .dpg{color:var(--orng);}.dc.bc .dpg{color:var(--cyan);}.dc.gc .dpg{color:var(--sub);}
+.da{position:absolute;top:0;left:0;width:3px;height:100%;}
+.dag{background:var(--gold);}.dao{background:var(--orng);}.dab{background:var(--blu);}.dagr{background:#374151;}
+
+.prog-bar-wrap{position:sticky;bottom:0;background:var(--bg3);border-top:1px solid var(--bdr);padding:10px 16px;padding-bottom:calc(10px + var(--safe-bot));}
+.pr{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.prl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);}
+.prp{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--gold);}
+.pb{height:4px;background:var(--bdr);border-radius:2px;}
+.pf{height:100%;border-radius:2px;transition:width .3s,background .3s;}
+
+@media(max-width:480px){
+  .dg{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+  .ct{font-size:13px;}
+  .sp-tfd{font-size:64px;}
+}
+</style>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="theme-color" content="#080B11">
+  <script>
+    // Register Service Worker for offline capability
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').then(function(reg) {
+          console.log('TFD SW registered:', reg.scope);
+        }).catch(function(err) {
+          console.log('TFD SW failed:', err);
+        });
+      });
+    }
+  </script>
+</head>
+<body>
+
+<div id="splash">
+  <div class="sp-tfd">TFD</div>
+  <div class="sp-sub">TACTICAL FLIGHT DECK</div>
+  <div class="sp-line"></div>
+  <div class="sp-co">MSC AIR · B777F FREIGHTER</div>
+  <div class="sp-ver">OM-A ED01 REV07 · 23 JAN 2026</div>
+</div>
+
+<div id="app">
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;">
+    <div class="tfd-badge">TFD</div>
+    <div><div class="tb-title">Tactical Flight Deck</div><div class="tb-sub">MSC AIR B777F · OM-A ED01 REV07</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="utc-pill" id="utc-clock">--:--:--Z</div>
+    <div class="live-pill"><div class="lpulse"></div><span id="phase-label">DISPATCH</span></div>
+  </div>
+</div>
+
+<div class="alert-strip" id="alert-strip">
+  <span>⚠</span>
+  <span><strong>ACTIVE CONDITIONS:</strong> Review Special Ops phase for Cold Wx, LVO, ETOPS, OEI procedures applicable to this flight.</span>
+</div>
+
+<nav class="phase-nav" id="pnav">
+  <button class="pn on" onclick="gp(0)">DISPATCH</button>
+  <button class="pn" onclick="gp(1)">WEATHER</button>
+  <button class="pn" onclick="gp(2)">NOTAM</button>
+  <button class="pn" onclick="gp(3)">FUEL</button>
+  <button class="pn" onclick="gp(4)">PERFORMANCE</button>
+  <button class="pn" onclick="gp(5)">SPECIAL OPS</button>
+  <button class="pn" onclick="gp(6)">AIRCRAFT</button>
+  <button class="pn" onclick="gp(7)">CREW BRIEF</button>
+  <button class="pn" onclick="gp(8)">FLIGHT DECK</button>
+  <button class="pn" style="color:#06B6D4;" onclick="gp(9)">&#x2B21; EN-ROUTE</button>
+  <button class="pn" onclick="gp(10)">DOCUMENTS</button>
+</nav>
+
+<div class="main">
+
+<!-- ══ 0 DISPATCH ══ -->
+<div class="phase on" id="p0">
+  <div class="sh"><div class="sn">01</div><div class="st">FLIGHT PLAN REVIEW</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">OCC flight plan received and reviewed</div><div class="cs">Confirm: flight number, routing, requested FL, planned block fuel, EOBT, pax/cargo</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=152" target="_blank">OM-A 8.1 · p.152</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Route validity — airspace, war zones, restrictions confirmed</div><div class="cs">Check NOTAM, SIGMET. Confirm no active conflict zone closures on planned track. Verify airways valid.</div><div class="tags"><span class="tg tc">WAR ZONES</span><span class="tg tw">AIRSPACE</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=477" target="_blank">OM-A 12 · p.477</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Alternate airports confirmed (destination, takeoff, en-route)</div><div class="cs">Destination alternate: check weather and NOTAM. Takeoff alternate: within 1h flying time. ERA for ETOPS.</div><div class="tags"><span class="tg ti">ALTERNATES</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=152" target="_blank">OM-A 8.1.0 · p.152</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Minimum flight altitudes verified along entire route</div><div class="cs">MORA, MSA, grid MORA. Cross-check all OFP altitudes above MEA/MORA with obstacle clearance margin.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=157" target="_blank">OM-A 8.1.1 · p.157</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">OEI driftdown / escape routes reviewed for terrain crossings</div><div class="cs">If route crosses terrain above OEI drift-down ceiling: identify escape routing, brief diversion options, coordinate with OCC.</div><div class="tags"><span class="tg tc">OEI CRITICAL</span><span class="tg tw">TERRAIN</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=260" target="_blank">OM-A 8.3 · p.260</a></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">02</div><div class="st">OPERATIONAL CONTROL</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">OCC dispatch release confirmed — 2-way contact established</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=91" target="_blank">OM-A Ch.2 · p.91</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Crew qualifications verified for route, conditions and special approvals</div><div class="cs">Route qualification, recency (sectors/landings/IFR), LVO authorization, ETOPS qualification if applicable.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=115" target="_blank">OM-A Ch.5 · p.115</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">FTL compliance — FDP, cumulative hours, rest period confirmed</div><div class="cs">No exceedance on this sector or accumulated period. Check split duty or augmented crew rules if applicable.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=145" target="_blank">OM-A Ch.7 FTL · p.145</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Crew composition verified — minimum crew, commander designated</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=97" target="_blank">OM-A Ch.4 · p.97</a></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 1 WEATHER ══ -->
+<div class="phase" id="p1">
+  <div class="sh"><div class="sn">01</div><div class="st">DEPARTURE WEATHER</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">METAR / TAF departure aerodrome reviewed</div><div class="cs">Visibility, ceiling, wind, gusts, QNH. Compare against published takeoff minima. Wind shear reports.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=154" target="_blank">OM-A 8.1.0.3 · p.154</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Takeoff alternate required? — select and confirm if needed</div><div class="cs">Required when departure wx below applicable take-off minima or when single ILS. Must be within 1h flight time.</div><div class="tags"><span class="tg tw">TAKEOFF ALT</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=343" target="_blank">OM-A 8.4 LVO · p.343</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Cold temperature corrections required? — OAT ≤ 0°C</div><div class="cs">Apply ICAO cold temperature altitude corrections to SID altitudes, MSA, approach minima. Check deicing requirement.</div><div class="tags"><span class="tg tc">COLD WX</span></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">02</div><div class="st">EN-ROUTE / SIGMET</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">SIGMETs reviewed — CB, icing, CAT, volcanic ash, radiation</div><div class="cs">Check validity vs ETD/ETA at each waypoint. Note avoidance strategies. Brief with OCC if deviation required.</div><div class="tags"><span class="tg tw">CB/TS</span><span class="tg tw">ICING</span><span class="tg tc">VOLC ASH</span></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">En-route alternate weather confirmed within planning minima</div><div class="cs">METAR + TAF covering full ETA ±1h window. Compare against EAA planning minima.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=363" target="_blank">OM-A 8.5 ETOPS · p.363</a></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">03</div><div class="st">DESTINATION & ALTERNATES</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Destination METAR + TAF — above planning minima at ETA?</div><div class="cs">If below planning minima: second destination alternate required. Check approach ban applicability.</div><div class="tags"><span class="tg tw">PLANNING MINIMA</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=343" target="_blank">OM-A 8.4 · p.343</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Alternate aerodrome(s) weather above planning minima</div><div class="cs">At least 1 alternate above minima. Two alternates when destination forecast requires. TAF validity confirmed.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=152" target="_blank">OM-A 8.1.0.2 · p.152</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">LVO at destination — crew authorization and minima confirmed</div><div class="cs">CAT II/III: confirm both crew LVO-qualified. Check ILS CAT status NOTAM. RVR limits entered in FCOM approach brief.</div><div class="tags"><span class="tg ti">LVO</span><span class="tg ti">CAT II/III</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=343" target="_blank">OM-A 8.4 LVO · p.343</a></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 2 NOTAM ══ -->
+<div class="phase" id="p2">
+  <div class="sh"><div class="sn">01</div><div class="st">DEPARTURE AERODROME NOTAM</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Runway status — surface condition, braking action, SNOWTAM</div><div class="cs">If contaminated: RCAM classification, performance penalties applied, de-ice/anti-ice required.</div><div class="tags"><span class="tg tw">CONTAMINATED RWY</span></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ILS / NAVAID status — any degraded or unserviceable?</div><div class="cs">ILS CAT availability if LVO planned. GPS RAIM outage NOTAM. Check stand-by approach available.</div><div class="tags"><span class="tg ti">NAVAID</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=343" target="_blank">OM-A 8.4 · p.343</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Obstacle / construction NOTAM reviewed near SID track</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Airspace restrictions, TFR, conflict zone closures</div><div class="cs">Verify no active war zone, TFR, or temporary area closure on planned route. Cross-check with EUROCONTROL NOTAM.</div><div class="tags"><span class="tg tc">WAR ZONE</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=477" target="_blank">OM-A Ch.12 · p.477</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">GPS jamming / spoofing NOTAMs — affected areas identified, crew briefed</div><div class="cs">Check GPSwise.aero for current jamming/spoofing map. If route affected: GPS unreliable procedure briefed, IRS cross-check, non-GPS nav backup confirmed.</div><div class="tags"><span class="tg" style="background:#0D0818;color:#8B5CF6;border-color:#2A1050;">GPS JAM</span><span class="tg" style="background:#0D0818;color:#8B5CF6;border-color:#2A1050;">SPOOFING</span></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">02</div><div class="st">DESTINATION & ALTERNATE NOTAM</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Destination — all approach and aerodrome NOTAM reviewed</div><div class="cs">Approach aids, lighting, threshold, obstacles, operator-specific restrictions, noise abatement.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Alternate aerodrome(s) NOTAM reviewed — approach capability confirmed</div><div class="cs">Check any curfews at alternate. Confirm approach aids serviceable. Parking / handling available.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ERA NOTAM reviewed for ETOPS if applicable</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=363" target="_blank">OM-A 8.5 · p.363</a></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 3 FUEL ══ -->
+<div class="phase" id="p3">
+  <div class="info"><strong>MSC AIR — Basic Fuel Scheme with Variations.</strong> Minimum required: TAXI + TRIP + CONTINGENCY (≥5% trip, min 1000 kg) + DEST ALT + ADDITIONAL + EXTRA (commander discretion). See OM-A 8.1.0 for full policy.</div>
+  <div class="sh"><div class="sn">01</div><div class="st">FUEL COMPONENTS</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Trip fuel confirmed on OFP — matches uplift planned</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=152" target="_blank">OM-A 8.1.0 · p.152</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Contingency fuel ≥ 5% trip fuel — minimum 1000 kg</div><div class="cs">If RCF procedure applied: statistical contingency, confirm OCC approval and conditions met.</div><div class="tags"><span class="tg tc">MIN 1000 KG</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=154" target="_blank">OM-A 8.1.0.2.1 RCF · p.154</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Destination alternate fuel included</div><div class="cs">Missed approach + cruise to alternate + descent + approach + 30 min hold at 1500 ft.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Additional fuel — ATC delay, wx deviation, high traffic area</div><div class="cs">Assess holding probability. Commander may add discretionary extra fuel at any point.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Fuel loaded confirmed — density, uplifted quantity vs OFP</div><div class="cs">Check fuel density (actual vs planned). Verify ramp fuel = OFP block fuel. Sign fuel receipt.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=225" target="_blank">OM-A 8.2 Gnd Hdlg · p.225</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ETOPS fuel — ERA fuel scenario confirmed if applicable</div><div class="cs">Critical fuel at ETP covers diversion to ERA + hold + approach. Compare against actual ramp fuel.</div><div class="tags"><span class="tg ti">ETOPS</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=363" target="_blank">OM-A 8.5 ETOPS · p.363</a></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 4 PERFORMANCE ══ -->
+<div class="phase" id="p4">
+  <div class="sh"><div class="sn">01</div><div class="st">TAKEOFF PERFORMANCE</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">TOW within MTOW and field length limit — correct runway selected</div><div class="cs">Use actual runway, OAT, QNH, wind component, slope, obstacle profile. Apply all corrections.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">FLEX / DERATED thrust — contaminated runway considered</div><div class="cs">Contaminated runway = TOGA required. No FLEX on ice, snow, slush, standing water beyond limits.</div><div class="tags"><span class="tg tc">NO FLEX — CONTAMINATED</span></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">V1 / VR / V2 confirmed — speeds briefed, entered on MCDU</div><div class="cs">Cross-check with QRH table. Verify CONF selection. Engine failure procedure briefed. V1 cut speed review.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Obstacle clearance verified — OEI SID track available and briefed</div><div class="tags"><span class="tg tw">OEI SID</span></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">02</div><div class="st">EN-ROUTE & LANDING</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Cruise altitude within certified ceiling — OEI drift-down above MEA</div><div class="cs">High/hot/heavy: OEI drift-down altitude must clear all terrain on route. Coordinate escape routing with OCC.</div><div class="tags"><span class="tg tw">OEI DRIFTDOWN</span></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Landing performance — Vapp, LDA, runway state at destination</div><div class="cs">Wet / contaminated: apply LDF (Landing Distance Factor). Confirm MLW not exceeded with actual fuel/payload.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">High altitude / hot destination considerations — if applicable</div><div class="cs">Elevation &gt;5000 ft: reduced engine performance, longer roll, slower acceleration. Recalculate T/O performance with correct elevation.</div><div class="tags"><span class="tg tw">HIGH ALT AIRPORT</span></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 5 SPECIAL OPS ══ -->
+<div class="phase" id="p5">
+
+  <div class="cond">
+    <div class="cdh"><div class="cdi">❄</div><div class="cdt">COLD WEATHER OPERATIONS</div><div class="cds act">REVIEW</div></div>
+    <div class="cl">
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">De-icing / anti-icing required? — OAT ≤ +3°C with visible moisture</div><div class="cs">Type I (de-ice only), Type II/III/IV (anti-ice with holdover time). Selection based on OAT, precipitation type, and required HOT.</div><div class="tags"><span class="tg tc">OAT ≤ +3°C</span><span class="tg tw">HOLDOVER TIME</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Anti-icing fluid holdover time vs actual TOBT confirmed</div><div class="cs">HOT begins from START of final anti-ice treatment. If HOT exceeded before takeoff: re-inspect or re-treat. No exceptions.</div><div class="tags"><span class="tg tc">CRITICAL — TIME LIMIT</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Pre-takeoff contamination check — "Clean Aircraft Concept"</div><div class="cs">Visual inspection of wings, stabilizers, engine inlets, control surfaces before entering runway. Zero tolerance for contamination.</div><div class="tags"><span class="tg tc">NO TAKEOFF WITH ICE/SNOW/FROST</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Cold temperature altitude corrections applied to procedures</div><div class="cs">Apply ICAO cold temp corrections to MDA/DH, MSA, obstacle clearance altitudes when OAT below ISA. SID altitude corrections especially critical.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=260" target="_blank">OM-A 8.3 · p.260</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Engine anti-ice (EAI) and airframe anti-ice (FAI) procedures briefed</div><div class="cs">EAI: ON when icing conditions exist or anticipated. FAI: selective use as per FCOM. Check MEL status for any ice protection deferrals.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=365" target="_blank">OM-A 8.6 MEL · p.365</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Extended taxi time impact on HOT and fuel — accounted for</div><div class="cs">Cold wx increases engine fuel burn at low power. Extended taxi may cause fluid HOT expiry. Plan for continuous monitoring.</div></div></div>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cdh"><div class="cdi">🌫</div><div class="cdt">LOW VISIBILITY OPERATIONS (LVO)</div><div class="cds act">REVIEW</div></div>
+    <div class="cl">
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">LVO qualification confirmed for both crew members</div><div class="cs">CAT II/III requires specific type qualification and recency. Check OM-A 5.1.5 for LVO qualification requirements.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=115" target="_blank">OM-A Ch.5 · p.115</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Approach category selected — CAT I / CAT II / CAT III A/B</div><div class="cs">Confirm applicable DH and RVR for the ILS category. Verify ILS CAT ground equipment NOTAM at destination.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=343" target="_blank">OM-A 8.4 LVO · p.343</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Approach ban conditions known — RVR limits for continuation</div><div class="cs">Below approach ban: must NOT commence. If RVR drops below minima before DA/DH: missed approach/go-around mandatory.</div><div class="tags"><span class="tg tc">APPROACH BAN</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Aircraft systems serviceability for LVO — AP, FD, RA, ILS, ALS</div><div class="cs">Both APs required for CAT III. Runway lighting serviceability confirmed via NOTAM. MEL items affecting LVO status reviewed.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=365" target="_blank">OM-A 8.6 MEL · p.365</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">LVTO (Low Visibility Take-Off) assessed and briefed if applicable</div><div class="cs">LVTO when RVR &lt;400m. Aerodrome must have active LVO ground procedures. Check enhanced stop bar lighting.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=344" target="_blank">OM-A 8.4.2.1 · p.344</a></div></div></div>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cdh"><div class="cdi">&#x26A0;</div><div class="cdt">DANGEROUS GOODS (DG)</div><div class="cds act">REVIEW IF DG ONBOARD</div></div>
+    <div class="cl">
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">NOTOC reviewed — DG nature, hazard class, quantity, UN number known</div><div class="tags"><span class="tg tw">DG CLASS</span><span class="tg tw">QUANTITY</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=393" target="_blank">OM-A Ch.9 DG p.393</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">DG stowage location known by commander — hold, position, separation</div><div class="tags"><span class="tg tw">LOCATION KNOWN</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">DG emergency drill briefed — fire/smoke/toxic/radioactive actions per hazard class</div><div class="tags"><span class="tg tc">EMERGENCY DRILL</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">DG compatibility verified — incompatible items correctly separated</div></div></div>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cdh"><div class="cdi">✈</div><div class="cdt">ETOPS</div><div class="cds stby">CHECK IF APPLICABLE</div></div>
+    <div class="cl">
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ETOPS authorization and diversion time limit confirmed</div><div class="cs">Confirm MSC AIR ETOPS approval limit and that planned route is within that limit from an ERA.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=363" target="_blank">OM-A 8.5 ETOPS · p.363</a></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">EEP / EXP identified — ETOPS entry and exit points on flight plan</div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ERA weather above ETOPS planning minima at time of potential diversion</div><div class="cs">ERA weather: above minima + 200ft / RVR +800m buffer. TAF covering full flight time window.</div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ETOPS critical fuel scenario confirmed — sufficient ramp fuel</div><div class="cs">From critical ETP: fuel covers diversion to ERA + hold + approach. Verified against actual block fuel.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=386" target="_blank">OM-A 8.10 · p.386</a></div></div></div>
+    </div>
+    <!-- FIX 4: ETOPS ERA FUEL CALCULATOR -->
+    <div style="background:var(--bg3);border:1px solid #003A52;border-radius:8px;padding:11px;margin-top:6px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#06B6D4;margin-bottom:9px;letter-spacing:.5px;">&#x2B21; ERA FUEL CALCULATOR</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="background:var(--card);border:1px solid var(--bdr);border-radius:6px;padding:8px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">ERA DISTANCE (nm)</div>
+          <input id="etops-dist" type="number" placeholder="e.g. 180" style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;">
+        </div>
+        <div style="background:var(--card);border:1px solid var(--bdr);border-radius:6px;padding:8px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">OEI TAS (kt)</div>
+          <input id="etops-tas" type="number" placeholder="310" style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;">
+        </div>
+        <div style="background:var(--card);border:1px solid var(--bdr);border-radius:6px;padding:8px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">OEI FUEL FLOW (kg/h)</div>
+          <input id="etops-ff" type="number" placeholder="7500" style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;">
+        </div>
+        <div style="background:var(--card);border:1px solid var(--bdr);border-radius:6px;padding:8px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">HOLD AT ERA (min)</div>
+          <input id="etops-hold" type="number" placeholder="30" style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;">
+        </div>
+      </div>
+      <button onclick="calcETOPS()" style="background:#052830;color:#06B6D4;border:1px solid #06B6D4;border-radius:6px;padding:7px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:7px;">&#x25B6; CALCULATE</button>
+      <div id="etops-result" style="background:var(--card);border:1px solid var(--bdr);border-radius:6px;padding:9px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--sub);line-height:1.8;">Enter ERA distance, OEI TAS, fuel flow, and hold time.</div>
+    </div>
+  </div>
+
+  <div class="cond">
+    <div class="cdh"><div class="cdi">⛰</div><div class="cdt">HIGH TERRAIN / OEI ESCAPE</div><div class="cds stby">CHECK IF APPLICABLE</div></div>
+    <div class="cl">
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">OEI driftdown escape routes identified and briefed</div><div class="cs">Engine failure en-route crossing high terrain: escape routing to safe altitude identified. Coordinates on chart. Briefed to crew.</div><div class="tags"><span class="tg tc">OEI ESCAPE CRITICAL</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Pressurization loss procedure and descent profile briefed</div><div class="cs">Emergency descent: 7700 squawk, pax O2, descend to 10,000 ft (or MEA if higher), divert nearest suitable. Crew oxygen duration checked.</div><div class="tags"><span class="tg tc">CABIN PRESS LOSS</span></div></div></div>
+      <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">High altitude / hot aerodrome performance reviewed</div><div class="cs">Elevation &gt;5000 ft or OAT ISA+20: significant performance reduction. Recalculate with correct conditions.</div><div class="tags"><span class="tg tw">HIGH & HOT</span></div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ 6 AIRCRAFT ══ -->
+<div class="phase" id="p6">
+  <div class="sh"><div class="sn">01</div><div class="st">TECHNICAL STATUS</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Tech log reviewed — all entries noted, no outstanding defects blocking despatch</div><div class="cs">Confirm MEL relief action for all deferred items. Verify any open entries do not affect airworthiness.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=365" target="_blank">OM-A 8.6 MEL · p.365</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">MEL / CDL items — all operational procedures applied</div><div class="cs">Each deferred item: confirm despatch conditions met, performance penalties applied, crew procedures briefed, placards in place.</div><div class="tags"><span class="tg tw">MEL PROCEDURES</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=365" target="_blank">OM-A 8.6 · p.365</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">EFB status — charged, current charts, operational</div><div class="cs">Jeppesen cycle current. App functional. Backup procedure if EFB failure confirmed and briefed.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=382" target="_blank">OM-A 8.9 EFB · p.382</a></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">02</div><div class="st">LOAD & HAZMAT</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Load sheet reviewed — TOW, ZFW, CG within limits</div><div class="cs">Check MZFW, MTOW, landing weight, CG envelope at TO and landing. LMC procedure briefed.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Dangerous goods — NOTOC reviewed, stowage and compatibility confirmed</div><div class="cs">All DG items: quantity limits, packing group, compatibility check, required labels/markings. Crew notified per IATA DGR.</div><div class="tags"><span class="tg tw">DANGEROUS GOODS</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=393" target="_blank">OM-A Ch.9 DG · p.393</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Security check complete — aircraft secure, no unauthorized items</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=424" target="_blank">OM-A Ch.10 Security · p.424</a></div></div></div>
+  </div>
+  <div class="sh"><div class="sn">03</div><div class="st">OXYGEN REQUIREMENTS</div><div class="sb-tag sb-c">AS REQUIRED</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Crew oxygen quantity confirmed — sufficient for planned flight</div><div class="cs">Verify portable O2 equipment, mask serviceability, duration at planned cabin altitude and emergency descent scenario.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=380" target="_blank">OM-A 8.8 O₂ · p.380</a></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 7 CREW BRIEF ══ -->
+<div class="phase" id="p7">
+  <div class="info"><strong>Commander's Briefing</strong> covers all operationally significant items before departure. Use this phase as a structured briefing flow with the co-pilot.</div>
+  <div class="sh"><div class="sn">01</div><div class="st">COMMANDER'S BRIEFING</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Route and significant waypoints — fuel burn profile reviewed</div><div class="cs">Highlight high-terrain segments, oceanic tracks, sector times, decision points (ETP, fuel checks).</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Weather briefing — departure, en-route, destination, alternates</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Threat & Error Management (TEM) — identified threats for this sector</div><div class="cs">Key threats: weather, terrain, congested airspace, fatigue, night ops, unfamiliar airport, hot/cold/high conditions.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Non-normal / emergency procedures — specific to this flight</div><div class="cs">Engine failure at V1, RTO, emergency descent, pressurization loss, fire drill — PF/PM roles confirmed.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=442" target="_blank">OM-A Ch.11 · p.442</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">PF / PM roles assigned — commander's decision stated</div><div class="cs">Who is PF for takeoff and initial climb. PM handles comms. Standard callouts confirmed per SOPs.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=260" target="_blank">OM-A 8.3 SOPs · p.260</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Special conditions briefed — MEL items, Cold Wx, LVO, ETOPS, terrain, DG</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Sterile flight deck rule briefed — below 10,000 ft</div><div class="cs">No non-essential communication or activity below 10,000 ft AGL. Brief CRM policy on interruptions.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=261" target="_blank">OM-A 8.3.0.1.3 · p.261</a></div></div></div>
+  </div>
+</div>
+
+<!-- ══ 8 FLIGHT DECK ══ -->
+<div class="phase" id="p8">
+  <div class="sh"><div class="sn">01</div><div class="st">PRE-DEPARTURE</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">ATIS obtained — QNH, active runway, weather, special procedures</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">MCDU programmed — route, SID, perf data cross-checked by PM</div><div class="cs">PM independent cross-check: route, TO speeds, FLEX/TOGA, ZFW, CG, fuel quantity, alternate.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Takeoff briefing complete — SID, initial climb, failure actions, go-around</div><div class="cs">V1/VR/V2, runway heading/first turn, OEI procedure, go-around altitude and procedure. Both crew confirm understanding.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=260" target="_blank">OM-A 8.3 · p.260</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Altimeters set and cross-checked — QNH from ATIS confirmed</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Departure clearance received and readback confirmed correct</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Before Start checklist — complete</div></div></div>
+  </div>
+  
+  <div class="sh"><div class="sn">02</div><div class="st">BEFORE ENTERING RUNWAY</div><div class="stag sm">MANDATORY</div></div>
+  <div class="info"><strong>Record before lining up. Both crew confirm.</strong></div>
+  <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);min-width:100px;">SOULS ON BOARD</span>
+      <input id="f-souls" type="number" inputmode="numeric" placeholder="e.g. 168" style="flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Barlow',sans-serif;font-size:16px;font-weight:500;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">POB</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);min-width:100px;">FUEL ON BOARD</span>
+      <input id="f-fob" type="number" inputmode="decimal" placeholder="e.g. 14800" style="flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Barlow',sans-serif;font-size:16px;font-weight:500;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">kg</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);min-width:100px;">T/O TIME UTC</span>
+      <input id="f-tod" type="text" placeholder="e.g. 0645" style="flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:16px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">UTC</span>
+    </div>
+  </div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Souls on board confirmed and noted — crew + pax + supernumeraries</div><div class="cs">Available for ATC on demand. Reported on emergency declaration (MAYDAY/PAN).</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Fuel on board at runway entry — confirmed by both crew, noted</div><div class="cs">Cross-check fuel gauges vs plan. Both crew note actual FOB. Minimum fuel to destination re-confirmed.</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">DG — final confirmation: nature, quantity, location, emergency drill</div><div class="tags"><span class="tg tw">DG FINAL CHECK</span></div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=393" target="_blank">OM-A Ch.9 · p.393</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Before Takeoff checklist — complete</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Takeoff clearance received — runway clear, conditions acceptable</div></div></div>
+  </div>
+<div class="sh"><div class="sn">03</div><div class="st">APPROACH BRIEFING (IN-FLIGHT)</div><div class="sb-tag sb-m">MANDATORY</div></div>
+  <div class="cl">
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Destination ATIS updated — runway in use, ILS, QNH, current conditions</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Approach briefing — STAR, approach type, DA/MDA, RVR, missed approach</div><div class="cs">Include: STAR transitions, expect vectors or full procedure, DH/MDA value, RVR limit, missed approach track and altitude, divert aerodrome and fuel.</div><div class="refs"><a class="rl" href="https://drive.google.com/file/d/1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK/view#page=260" target="_blank">OM-A 8.3 · p.260</a></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Fuel check at top of descent — minimum fuel landing confirmed</div><div class="cs">Fuel at destination vs FINRES (30 min hold). If minimum fuel: declare MINIMUM FUEL to ATC. If below FINRES: MAYDAY.</div><div class="tags"><span class="tg tc">FUEL AWARENESS CRITICAL</span></div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">TCAS / ACAS armed — RA procedures reviewed</div></div></div>
+    <div class="ci" onclick="tc(this)"><div class="ck"></div><div class="cb"><div class="ct">Descent and approach checklist — complete</div></div></div>
+  </div>
+</div>
+
+<!-- ══ 9 DOCUMENTS ══ -->
+<div class="phase" id="p9">
+  <div style="background:var(--card);border:1px solid #06B6D4;border-radius:10px;padding:12px;margin-bottom:10px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#06B6D4;margin-bottom:10px;">&#x2B21; FLIGHT SETUP</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:9px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">FLIGHT</div>
+        <input style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;" id="s-flt" type="text" placeholder="MSC123">
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:9px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">DEP &#x2192; ARR</div>
+        <input style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;" id="s-route-id" type="text" placeholder="LIRF &#x2192; LEMD">
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:9px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">CRUISE TAS (kt)</div>
+        <input style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;" id="s-tas" type="number" placeholder="450">
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:9px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:3px;">ETD UTC (HHMM)</div>
+        <input style="width:100%;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:14px;" id="s-etd" type="text" placeholder="0645" oninput="updateTL()">
+      </div>
+    </div>
+    <button onclick="syncTOD()" style="margin-top:6px;background:#052010;color:var(--grn);border:1px solid var(--grn);border-radius:6px;padding:7px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;width:100%;">&#x21BB; SYNC ETD FROM ACTUAL T/O TIME (FLIGHT DECK PHASE)</button>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:12px;margin-bottom:10px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#06B6D4;margin-bottom:8px;">&#x1F4CB; OFP ROUTE INPUT</div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.5;">Paste ATC-accepted route from Operational Flight Plan.<br><span style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:10px;">e.g. LIRF DCT ROVAN UM984 VADAM UM179 MODNI LEMD</span></div>
+    <textarea id="route-txt" style="width:100%;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px;resize:vertical;min-height:75px;outline:none;line-height:1.6;" placeholder="Paste ATC route here..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button onclick="parseRoute()" style="background:#052830;color:#06B6D4;border:1px solid #06B6D4;border-radius:6px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">&#x2B21; PARSE ROUTE</button>
+      <button onclick="clearRoute()" style="background:#201400;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">CLEAR</button>
+    </div>
+  </div>
+
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--txt);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bdr);">LIVE DATA SOURCES</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+    <a href="https://www.windy.com/?winds,500h" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px;text-decoration:none;"><span style="font-size:20px;">&#x1F310;</span><div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--txt);">WINDY.COM</div><div style="font-size:10px;color:var(--sub);">Winds &#xB7; SIGMET &#xB7; CB &#xB7; Icing</div></div></a>
+    <a href="https://gpswise.aero/map" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px;text-decoration:none;"><span style="font-size:20px;">&#x1F4E1;</span><div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--txt);">GPSWISE</div><div style="font-size:10px;color:var(--sub);">GPS Jamming &amp; Spoofing</div></div></a>
+    <a href="https://www.skybriefing.com/" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px;text-decoration:none;"><span style="font-size:20px;">&#x1F4DD;</span><div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--txt);">SKYBRIEFING</div><div style="font-size:10px;color:var(--sub);">NOTAM &#xB7; SIGMET &#xB7; AIP</div></div></a>
+    <a href="https://maps.google.com" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px;text-decoration:none;"><span style="font-size:20px;">&#x1F5FA;</span><div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--txt);">GOOGLE MAPS</div><div style="font-size:10px;color:var(--sub);">Terrain reference</div></div></a>
+  </div>
+
+  <div id="tl-bar" style="display:none;background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:11px;margin-bottom:10px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--txt);margin-bottom:8px;">&#x23F1; UPCOMING WAYPOINTS &#x2014; NEXT 30 MIN</div>
+    <div id="tl-items"></div>
+  </div>
+
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--txt);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bdr);" id="wp-title">ROUTE WAYPOINTS</div>
+  <div id="wp-list"><div style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:18px;text-align:center;color:var(--sub);font-size:13px;">Paste your OFP route and tap <strong style="color:#06B6D4;">PARSE ROUTE</strong> to generate per-waypoint cards.</div></div>
+
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--txt);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bdr);">FUEL PROGRESSION TRACKER</div>
+  <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);min-width:90px;">ACTUAL NOW</span>
+      <input id="fp-now" type="number" placeholder="Current FOB kg" style="flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Barlow',sans-serif;font-size:14px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">kg</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);min-width:90px;">PLAN AT POS</span>
+      <input id="fp-plan" type="number" placeholder="OFP planned fuel at position" style="flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:'Barlow',sans-serif;font-size:14px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">kg</span>
+    </div>
+  </div>
+  <button onclick="calcFuel()" style="background:#201400;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:8px;">&#x25B6; CALCULATE FUEL DELTA</button>
+  <div id="fuel-result" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:11px;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--sub);">Enter actual and planned fuel to see delta vs plan.</div>
+</div>
+<div class="phase" id="p10">
+
+  <!-- OM-A CHAPTER GRID -->
+  <div class="sh"><div class="sn"></div><div class="st">OM-A — ALL CHAPTERS</div></div>
+  <div class="dg" id="dg-main"></div>
+  <div class="sh"><div class="sn"></div><div class="st">CH 8 — OPERATING PROCEDURES</div></div>
+  <div class="dg" id="dg-ch8"></div>
+
+  <!-- BOEING MANUALS -->
+  <div class="sh"><div class="sn"></div><div class="st">BOEING MANUALS — B777F</div><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);padding:3px 7px;background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;">LOCAL · MAC ONLY</span></div>
+  <div class="dg">
+    <a class="dc fc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/BOEING%20MANUALS/777F_FCOM_Rev11_15Dec25.pdf" target="_blank"><div class="da daf"></div><div class="dn">FCOM</div><div class="dm">Flight Crew Ops Manual</div><div class="dsb">Rev 11 · 15 Dec 2025</div><div class="dpg">B777F</div></a>
+    <a class="dc fc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/BOEING%20MANUALS/777F_QRH_Rev11_15Dec25.pdf" target="_blank"><div class="da daf"></div><div class="dn">QRH</div><div class="dm">Quick Reference Handbook</div><div class="dsb">Rev 11 · 15 Dec 2025</div><div class="dpg">B777F</div></a>
+    <a class="dc fc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/BOEING%20MANUALS/777_FCTM_Rev24_27feb26.pdf" target="_blank"><div class="da daf"></div><div class="dn">FCTM</div><div class="dm">Flight Crew Training Manual</div><div class="dsb">Rev 24 · 27 Feb 2026</div><div class="dpg">B777</div></a>
+    <a class="dc fc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/BOEING%20MANUALS/AFM_777F_Rev05_05Mar26.pdf" target="_blank"><div class="da daf"></div><div class="dn">AFM</div><div class="dm">Airplane Flight Manual</div><div class="dsb">Rev 05 · 05 Mar 2026</div><div class="dpg">B777F</div></a>
+    <a class="dc fc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/BOEING%20MANUALS/777F_FPPM_Rev0_15Dec23.pdf" target="_blank"><div class="da daf"></div><div class="dn">FPPM</div><div class="dm">Flight Planning &amp; Performance</div><div class="dsb">Rev 0 · 15 Dec 2023</div><div class="dpg">B777F</div></a>
+  </div>
+
+  <!-- MSC AIR OM SERIES -->
+  <div class="sh"><div class="sn"></div><div class="st">MSC AIR — OPERATIONS MANUALS</div><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);padding:3px 7px;background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;">LOCAL · MAC ONLY</span></div>
+  <div class="dg">
+    <a class="dc bc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/OM/OM-B_777F_Ed01_Rev04_01mar26.pdf" target="_blank"><div class="da dab"></div><div class="dn">OM-B</div><div class="dm">Aircraft Operating Procedures</div><div class="dsb">Ed01 Rev04 · 01 Mar 2026</div><div class="dpg">B777F</div></a>
+    <a class="dc bc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/OM/OM-C_Ed01_Rev02_25feb25.pdf" target="_blank"><div class="da dab"></div><div class="dn">OM-C</div><div class="dm">Route &amp; Aerodrome Instructions</div><div class="dsb">Ed01 Rev02 · 25 Feb 2025</div><div class="dpg">MSC AIR</div></a>
+    <a class="dc bc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/OM/OM-D_Ed01_Rev03_19sep25.pdf" target="_blank"><div class="da dab"></div><div class="dn">OM-D</div><div class="dm">Training Manual</div><div class="dsb">Ed01 Rev03 · 19 Sep 2025</div><div class="dpg">MSC AIR</div></a>
+    <a class="dc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/MEL/LSI-777-MEL-01_Iss01_Rev03_12feb26.pdf" target="_blank"><div class="da dao"></div><div class="dn" style="color:var(--orng);">MEL</div><div class="dm">Min Equipment List</div><div class="dsb">Iss01 Rev03 · 12 Feb 2026</div><div class="dpg" style="color:var(--orng);">B777F</div></a>
+    <a class="dc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/MISCELLANEOUS%20DOCS/Crew%20Regulations%20Manual_Ed01_Rev02_20oct25.pdf" target="_blank"><div class="da dag"></div><div class="dn">CRM</div><div class="dm">Crew Regulations Manual</div><div class="dsb">Ed01 Rev02 · 20 Oct 2025</div><div class="dpg">MSC AIR</div></a>
+    <a class="dc" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/EFB/EFB%20Policy%20%26%20Procedure%20Manual_Ed01_Rev03_01mar26.pdf" target="_blank"><div class="da dag"></div><div class="dn">EFB</div><div class="dm">EFB Policy &amp; Procedure</div><div class="dsb">Ed01 Rev03 · 01 Mar 2026</div><div class="dpg">MSC AIR</div></a>
+  </div>
+
+  <!-- ACTIVE ACCs -->
+  <div class="sh"><div class="sn"></div><div class="st">ACTIVE ACCs — AIRCREW CIRCULARS</div></div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:8px;padding:6px 10px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;">19 active circulars · 2024–2026 · LOCAL MAC LINKS</div>
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--amber);margin:8px 0 5px;">2026</div>
+  <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px;">
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2026/ACC-04-2026_I-MSCC%20Phase-in.pdf" target="_blank"><span class="acc-num">ACC-04-2026</span><span class="acc-title">I-MSCC Phase-in</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2026/ACC-03-2026_I-MSCB%20Phase-in.pdf" target="_blank"><span class="acc-num">ACC-03-2026</span><span class="acc-title">I-MSCB Phase-in</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2026/ACC-02-2026_On-board%20USB%20Power%20Outlets%20and%20Company%20Equipment.pdf" target="_blank"><span class="acc-num">ACC-02-2026</span><span class="acc-title">On-board USB Power Outlets and Company Equipment</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2026/ACC-01-2026_SOP%20Rev.%2003_Aviator%20Loadsheet%20Introduction.pdf" target="_blank"><span class="acc-num">ACC-01-2026</span><span class="acc-title">SOP Rev. 03 — Aviator Loadsheet Introduction</span></a>
+  </div>
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--amber);margin:8px 0 5px;">2025</div>
+  <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px;">
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-15-2025_Prohibited%20Items%20Carriage%20in%20Crew%20Baggage.pdf" target="_blank"><span class="acc-num">ACC-15-2025</span><span class="acc-title">Prohibited Items Carriage in Crew Baggage</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-14-2025_Basic%20Fuel%20Scheme%20with%20Variations%20%26%20AIMS%20Introduction.pdf" target="_blank"><span class="acc-num">ACC-14-2025</span><span class="acc-title">Basic Fuel Scheme with Variations &amp; AIMS Introduction</span><span class="acc-year" style="color:var(--gold);">FUEL</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-13-2025_Alcohol%20Test%20at%20NRT.pdf" target="_blank"><span class="acc-num">ACC-13-2025</span><span class="acc-title">Alcohol Test at NRT</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-12-2025_Aviator%20Journey%20Log%20Modifications.pdf" target="_blank"><span class="acc-num">ACC-12-2025</span><span class="acc-title">Aviator Journey Log Modifications</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-11-2025_Aviator%20Fuels.pdf" target="_blank"><span class="acc-num">ACC-11-2025</span><span class="acc-title">Aviator Fuels</span><span class="acc-year" style="color:var(--gold);">FUEL</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-10-2025_Proper%20Completion%20of%20ATL%20Documentation.pdf" target="_blank"><span class="acc-num">ACC-10-2025</span><span class="acc-title">Proper Completion of ATL Documentation</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-09-2025_Company%20iPad%20eSIM%20Policy.pdf" target="_blank"><span class="acc-num">ACC-09-2025</span><span class="acc-title">Company iPad eSIM Policy</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-08-2025_Fuel%20Specs%20GYD%20Operations.pdf" target="_blank"><span class="acc-num">ACC-08-2025</span><span class="acc-title">Fuel Specs GYD Operations</span><span class="acc-year" style="color:var(--gold);">FUEL</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-07-2025_FCOM-QRH%20Revision%2010_AIMS%202%20BP%20v.18%20update%20%26%20New%20Implementations.pdf" target="_blank"><span class="acc-num">ACC-07-2025</span><span class="acc-title">FCOM/QRH Rev 10 · AIMS 2 BP v.18 Update &amp; New Implementations</span><span class="acc-year" style="color:var(--red);">FCOM</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-06-2025_NRT%20Fuel%20Uplift%20Discrepancy.pdf" target="_blank"><span class="acc-num">ACC-06-2025</span><span class="acc-title">NRT Fuel Uplift Discrepancy</span><span class="acc-year" style="color:var(--gold);">FUEL</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-05-2025_LVO%20CAT%20III%20NO%20DH%20Approval%20%26%20Manuals%20Amendment.pdf" target="_blank"><span class="acc-num">ACC-05-2025</span><span class="acc-title">LVO CAT III NO DH Approval &amp; Manuals Amendment</span><span class="acc-year" style="color:var(--blu);">LVO</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-04-2025_Tailwind%20Limitations.pdf" target="_blank"><span class="acc-num">ACC-04-2025</span><span class="acc-title">Tailwind Limitations</span><span class="acc-year" style="color:var(--red);">PERF</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2025/ACC-03-2025_Fuel%20%26%20Performance%20Strategies_Rev01.pdf" target="_blank"><span class="acc-num">ACC-03-2025</span><span class="acc-title">Fuel &amp; Performance Strategies Rev01</span><span class="acc-year" style="color:var(--gold);">FUEL</span></a>
+  </div>
+  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--amber);margin:8px 0 5px;">2024</div>
+  <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px;">
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2024/ACC-12-2024_Forms%20Submission%20from%20Company%20iPad.pdf" target="_blank"><span class="acc-num">ACC-12-2024</span><span class="acc-title">Forms Submission from Company iPad</span></a>
+    <a class="acc-card" href="file:///Users/Apple/Desktop/MSC%20AIR/MANUALS/ACC/2024/ACC-03-2024_5G%20Radio%20Altimeter%20Interference.pdf" target="_blank"><span class="acc-num">ACC-03-2024</span><span class="acc-title">5G Radio Altimeter Interference</span><span class="acc-year" style="color:var(--red);">SAFETY</span></a>
+  </div>
+
+</div>
+
+</div><!-- /main -->
+
+<div class="prog-bar-wrap">
+  <div class="pr"><span class="prl" id="prog-phase">DISPATCH — PHASE COMPLETION</span><span class="prp" id="prog-pct">0%</span></div>
+  <div class="pb"><div class="pf" id="prog-fill" style="width:0%;background:var(--gold);"></div></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+const F='1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK';
+const pdf=p=>`https://drive.google.com/file/d/${F}/view#page=${p}`;
+const phases=['DISPATCH','WEATHER','NOTAM','FUEL','PERFORMANCE','SPECIAL OPS','AIRCRAFT','CREW BRIEF','FLIGHT DECK','EN-ROUTE','DOCUMENTS'];
+let cp=0;
+
+setTimeout(()=>document.getElementById('splash').classList.add('out'),2000);
+
+function gp(n){
+  document.querySelectorAll('.phase').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.pn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('p'+n).classList.add('on');
+  document.querySelectorAll('.pn')[n].classList.add('on');
+  document.getElementById('phase-label').textContent=phases[n];
+  document.getElementById('prog-phase').textContent=phases[n]+' — PHASE COMPLETION';
+  cp=n;up();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function tc(el){
+  el.classList.toggle('done');
+  up();
+}
+
+function up(){
+  const panel=document.getElementById('p'+cp);
+  const items=panel.querySelectorAll('.ci');
+  const done=panel.querySelectorAll('.ci.done');
+  const pct=items.length?Math.round(done.length/items.length*100):0;
+  document.getElementById('prog-pct').textContent=pct+'%';
+  const f=document.getElementById('prog-fill');
+  f.style.width=pct+'%';
+  f.style.background=pct===100?'var(--grn)':'var(--gold)';
+}
+
+// Documents
+const mc=[
+  {n:'0',nm:'Administration & Control',sb:'of the Operations Manual',p:5,cls:'gc',da:'dagr'},
+  {n:'1',nm:'Organization & Responsibilities',sb:'',p:69,cls:'',da:'dag'},
+  {n:'2',nm:'Operational Control',sb:'& Supervision',p:91,cls:'',da:'dag'},
+  {n:'3',nm:'Management System',sb:'',p:93,cls:'',da:'dag'},
+  {n:'4',nm:'Crew Composition',sb:'',p:97,cls:'',da:'dag'},
+  {n:'5',nm:'Qualification Requirements',sb:'',p:115,cls:'',da:'dag'},
+  {n:'6',nm:'Crew Health Precautions',sb:'',p:127,cls:'',da:'dag'},
+  {n:'7',nm:'Flight Time Limitations',sb:'FTL · FRM · FDP',p:145,cls:'bc',da:'dab'},
+  {n:'8',nm:'Operating Procedures',sb:'→ sub-chapters below',p:152,cls:'oc',da:'dao'},
+  {n:'9',nm:'Dangerous Goods & Weapons',sb:'',p:393,cls:'',da:'dag'},
+  {n:'10',nm:'Security',sb:'',p:424,cls:'',da:'dag'},
+  {n:'11',nm:'Handling & Reporting',sb:'Accidents & Incidents',p:442,cls:'',da:'dag'},
+  {n:'12',nm:'Rules of the Air',sb:'',p:477,cls:'',da:'dag'},
+  {n:'13',nm:'Leasing / Code Share',sb:'',p:479,cls:'',da:'dag'},
+  {n:'APP',nm:'Appendix',sb:'Manuals & Docs · Forms',p:483,cls:'gc',da:'dagr'},
+];
+const sc=[
+  {n:'8.1',nm:'Operating Procedures',sb:'Flight prep & execution',p:152},
+  {n:'8.2',nm:'Ground Handling',sb:'Fuelling & ground ops',p:225},
+  {n:'8.3',nm:'Flight Procedures',sb:'SOPs & flight deck policy',p:260},
+  {n:'8.4',nm:'Low Visibility Ops',sb:'LVO · CAT II/III',p:343},
+  {n:'8.5',nm:'ETOPS',sb:'Extended range ops',p:363},
+  {n:'8.6',nm:'MEL & CDL',sb:'Min equipment lists',p:365},
+  {n:'8.7',nm:'Non-Commercial Ops',sb:'Training & ferry',p:370},
+  {n:'8.8',nm:'Oxygen Requirements',sb:'Supplemental O₂',p:380},
+  {n:'8.9',nm:'EFB Type B',sb:'Procedures & architecture',p:382},
+  {n:'8.10',nm:'Max Distance',sb:'No ETOPS — 2-engine',p:386},
+];
+
+const dg=document.getElementById('dg-main');
+mc.forEach(c=>{const a=document.createElement('a');a.className='dc '+c.cls;a.href=pdf(c.p);a.target='_blank';a.rel='noopener';a.innerHTML=`<div class="da ${c.da}"></div><div class="dn">${c.n}</div><div class="dm">${c.nm}</div>${c.sb?`<div class="dsb">${c.sb}</div>`:''}<div class="dpg">PDF p.${c.p}</div>`;dg.appendChild(a);});
+
+const dg8=document.getElementById('dg-ch8');
+sc.forEach(s=>{const a=document.createElement('a');a.className='dc oc';a.href=pdf(s.p);a.target='_blank';a.rel='noopener';a.innerHTML=`<div class="da dao"></div><div class="dn">${s.n}</div><div class="dm">${s.nm}</div><div class="dsb">${s.sb}</div><div class="dpg">PDF p.${s.p}</div>`;dg8.appendChild(a);});
+
+up();
+
+// ════ EN-ROUTE JS ════ (FIX 3 + FIX 8)
+var parsedWPs=[];
+
+// Sync actual T/O time from FLIGHT DECK phase into ETD field
+function syncTOD(){
+  var tod=document.getElementById('f-tod').value;
+  if(tod&&tod.length>=4){
+    document.getElementById('s-etd').value=tod;
+    if(parsedWPs.length>0)renderWPs();
+    alert('ETD synced from actual T/O time: '+tod+'Z');
+  } else {
+    alert('Enter actual T/O time in FLIGHT DECK phase first (Before Entering Runway section).');
+  }
+}
+
+function parseRoute(){
+  var raw=document.getElementById('route-txt').value.trim();
+  if(!raw){alert('Paste a route first.');return;}
+  var upper=raw.toUpperCase();
+  // Split on whitespace; keep slash-annotated tokens together
+  var tokens=upper.replace(/[\\]/g,' ').split(/\s+/).filter(function(t){return t.length>0&&t!=='DCT'&&t!=='N/A';});
+  var wps=[];
+  for(var i=0;i<tokens.length;i++){
+    var t=tokens[i];
+    if(/^\d+[LRC]?$/.test(t))continue; // skip altitude/FL tokens
+    // FIX 3: detect WAYPOINT/HHMM or WAYPOINT/HHMMSS time-annotated tokens from OFP
+    var timed=t.match(/^([A-Z]{3,5})\/(\d{4})(?:\d{2})?(?:\/.*)?$/);
+    if(timed){
+      wps.push({name:timed[1],eto:timed[2]+'Z',hasTime:true});
+      continue;
+    }
+    // Also handle lat/lon format like 5500N (oceanic track entry points)
+    var latlon=t.match(/^(\d{2}[NS]\d{3}[EW])$/);
+    if(latlon){wps.push({name:t,eto:null,hasTime:false});continue;}
+    // Standard 3-5 char waypoints; exclude airways (ULM format, e.g. UM984, L603)
+    var isAW=/^[ULM][A-Z]\d+$/.test(t)||/^[A-Z]\d{3,}$/.test(t);
+    if(/^[A-Z]{3,5}$/.test(t)&&!isAW){
+      wps.push({name:t,eto:null,hasTime:false});
+    }
+  }
+  parsedWPs=wps;
+  if(parsedWPs.length===0){alert('No waypoints found.\nFormats supported:\n• LIRF DCT ROVAN UM984 VADAM LEMD\n• LIRF ROVAN/0115 VADAM/0243 LEMD/0410 (with OFP times)');return;}
+  var nTimed=parsedWPs.filter(function(w){return w.hasTime;}).length;
+  var titleSuffix=nTimed>0?' · '+nTimed+'/'+parsedWPs.length+' TIMED':' · ETA ESTIMATED';
+  document.getElementById('wp-title').textContent='ROUTE WAYPOINTS ('+parsedWPs.length+')'+titleSuffix;
+  renderWPs();
+}
+
+function clearRoute(){
+  document.getElementById('route-txt').value='';
+  parsedWPs=[];
+  document.getElementById('wp-list').innerHTML='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:18px;text-align:center;color:var(--sub);font-size:13px;">Paste your OFP route and tap PARSE ROUTE.</div>';
+  document.getElementById('wp-title').textContent='ROUTE WAYPOINTS';
+  document.getElementById('tl-bar').style.display='none';
+}
+
+// FIX 3: Returns {time:'HHMMZ', est:bool} or {time:null, est:true}
+function getWPETA(idx){
+  var wp=parsedWPs[idx];
+  // If waypoint has OFP time annotation, use it — no estimation
+  if(wp&&wp.hasTime&&wp.eto)return {time:wp.eto,est:false};
+  // Fallback: use actual T/O time (f-tod) first, else planned ETD (s-etd)
+  var etd=(document.getElementById('s-etd').value||'').trim();
+  var tod=(document.getElementById('f-tod').value||'').trim();
+  var ref=tod.length>=4?tod:etd; // prefer actual T/O time
+  var tas=parseInt(document.getElementById('s-tas').value)||450;
+  if(!ref||ref.length<4)return {time:null,est:true};
+  var h=parseInt(ref.substring(0,2)),m=parseInt(ref.substring(2,4));
+  if(isNaN(h)||isNaN(m))return {time:null,est:true};
+  // ~100nm per waypoint at cruise TAS — approximate only
+  var mpp=Math.round(100/tas*60);
+  var tot=(h*60+m)+(idx+1)*mpp;
+  var eh=Math.floor(tot/60)%24,em=tot%60;
+  return {time:('0'+eh).slice(-2)+('0'+em).slice(-2)+'Z',est:true};
+}
+
+function minsTo(etaStr){
+  if(!etaStr)return null;
+  var now=new Date();
+  var nm=now.getUTCHours()*60+now.getUTCMinutes();
+  var eh=parseInt(etaStr.substring(0,2)),em=parseInt(etaStr.substring(2,4));
+  var d=(eh*60+em)-nm;
+  if(d<-720)d+=1440;
+  return d;
+}
+
+function renderWPs(){
+  var FID='1thGEpVdnrvNuGmUeuRwavIeXHSaLkaTK';
+  var list=document.getElementById('wp-list');
+  list.innerHTML='';
+  for(var i=0;i<parsedWPs.length;i++){
+    (function(wp,idx){
+      var etaObj=getWPETA(idx);
+      var eta=etaObj.time,isEst=etaObj.est;
+      var mins=eta?minsTo(eta):null;
+      var isF=idx===0,isL=idx===parsedWPs.length-1;
+      var cdCol='#7A8BA8',cdTxt='';
+      if(mins!==null){if(mins<=0){cdCol='#22C55E';cdTxt='PASSED';}else if(mins<=15){cdCol='#C0392B';cdTxt=mins+' MIN';}else if(mins<=30){cdCol='#F59E0B';cdTxt=mins+' MIN';}else{cdTxt=mins+' MIN';}}
+      var dc=isF?'#22C55E':isL?'#C8991A':'#2D3A52';
+      var mapsU='https://maps.google.com/maps?q='+wp.name+'&t=p';
+      // FIX 3: ETA display with EST badge
+      var etaDisplay=eta?(eta+(isEst?' <span style="font-size:9px;color:var(--amber);background:#201000;border:1px solid #5A2800;border-radius:2px;padding:1px 4px;vertical-align:middle;">EST</span>':'')):'&mdash;&mdash;';
+      // FIX 8: NOTAM validity hint string
+      var notamHint=eta?('Verify active NOTAMs valid at <strong style="color:var(--txt);">'+eta+'</strong>'+(isEst?' (estimated)':' (OFP time)')+'.<br>Check airspace closures, GPS NOTAM, FIR entry requirements for this time window.'):'Enter T/O time + TAS to see ETA-based NOTAM validity window.';
+      var card=document.createElement('div');
+      card.style.cssText='background:var(--card);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:6px;';
+      var bodyId='wpb'+idx;
+      card.innerHTML='<div onclick="var b=document.getElementById(\''+bodyId+'\');b.style.display=b.style.display===\'none\'?\'block\':\'none\';" style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;">'
+        +'<div style="width:8px;height:8px;border-radius:50%;background:'+dc+';flex-shrink:0;"></div>'
+        +'<div><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:17px;color:var(--txt);">'+wp.name+'</div>'
+        +'<div style="font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--sub);">'+(isF?'DEPARTURE':isL?'ARRIVAL':'WAYPOINT')+' #'+(idx+1)+'</div></div>'
+        +'<div style="margin-left:auto;text-align:right;">'
+        +'<div style="font-family:\'Share Tech Mono\',monospace;font-size:13px;color:#06B6D4;">'+etaDisplay+'</div>'
+        +(mins!==null?'<div style="font-family:\'Share Tech Mono\',monospace;font-size:10px;color:'+cdCol+';">'+cdTxt+'</div>':'')
+        +'</div><div style="font-size:12px;color:var(--muted);">&#9658;</div></div>'
+        +'<div id="'+bodyId+'" style="display:none;padding:10px 12px;border-top:1px solid var(--bdr);">'
+        // FIX 8: NOTAM validity box per waypoint
+        +'<div style="background:#000D1A;border:1px solid #003050;border-radius:6px;padding:7px 9px;margin-bottom:8px;font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--sub);line-height:1.6;">'
+        +'<span style="color:#06B6D4;">⏱ NOTAM CHECK — </span>'+notamHint
+        +'</div>'
+        +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">'
+        +'<a href="https://www.windy.com/?winds,500h" target="_blank" style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;text-decoration:none;font-size:11px;color:var(--txt);">&#x1F324; Weather</a>'
+        +'<a href="https://gpswise.aero/map" target="_blank" style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;text-decoration:none;font-size:11px;color:var(--txt);">&#x1F4E1; GPS Status</a>'
+        +'<a href="'+mapsU+'" target="_blank" style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;text-decoration:none;font-size:11px;color:var(--txt);">&#x26F0; Terrain</a>'
+        +'<a href="https://www.skybriefing.com/" target="_blank" style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;text-decoration:none;font-size:11px;color:var(--txt);">&#x1F4DD; NOTAM</a>'
+        +((!isF&&!isL)?'<a href="https://drive.google.com/file/d/'+FID+'/view#page=260" target="_blank" style="display:flex;align-items:center;gap:5px;background:#140000;border:1px solid #3A0000;border-radius:6px;padding:5px 9px;text-decoration:none;font-size:11px;color:#E24B4A;">&#x26F0; OEI OM-A 8.3</a>':'')
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:7px;">'
+        +'<span style="font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--sub);">FOB AT '+wp.name+'</span>'
+        +'<input id="fobv'+idx+'" type="number" placeholder="kg" style="flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:\'Share Tech Mono\',monospace;font-size:13px;">'
+        +'<button onclick="logFuel('+idx+',\''+wp.name+'\')" style="background:#201400;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:3px 9px;font-size:11px;cursor:pointer;">LOG</button>'
+        +'</div>'
+        +'<div id="flog'+idx+'" style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:#22C55E;margin-top:4px;display:none;"></div>'
+        +'</div>';
+      list.appendChild(card);
+    })(parsedWPs[i],i);
+  }
+  updateTL();
+}
+function logFuel(idx,name){
+  var v=document.getElementById('fobv'+idx).value;
+  if(!v)return;
+  var el=document.getElementById('flog'+idx);
+  el.style.display='block';
+  el.textContent='\u2713 '+name+': '+parseInt(v).toLocaleString()+' kg logged';
+}
+function updateTL(){
+  if(!parsedWPs||parsedWPs.length===0)return;
+  var bar=document.getElementById('tl-bar');
+  var items=document.getElementById('tl-items');
+  if(!bar||!items)return;
+  var upcoming=[];
+  for(var i=0;i<parsedWPs.length;i++){
+    var etaObj=getWPETA(i);if(!etaObj.time)continue;
+    var mins=minsTo(etaObj.time);
+    if(mins!==null&&mins>=0&&mins<=30)upcoming.push({wp:parsedWPs[i],eta:etaObj.time,est:etaObj.est,mins:mins});
+  }
+  if(upcoming.length===0){bar.style.display='none';return;}
+  bar.style.display='block';items.innerHTML='';
+  for(var j=0;j<upcoming.length;j++){
+    var u=upcoming[j];
+    var cls=u.mins<=15?'#C0392B':u.mins<=25?'#F59E0B':'#3B82F6';
+    var div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--bdr);';
+    div.innerHTML='<div style="width:7px;height:7px;border-radius:50%;background:'+cls+';flex-shrink:0;margin-top:4px;"></div>'
+      +'<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:#06B6D4;min-width:44px;">'+u.eta+(u.est?'~':'')+'</div>'
+      +'<div><div style="font-size:12px;color:var(--txt);"><strong>'+u.wp.name+'</strong> <span style="font-family:\'Share Tech Mono\',monospace;font-size:10px;background:var(--bg3);border:1px solid var(--bdr);padding:2px 5px;border-radius:3px;">'+u.mins+' MIN</span></div>'
+      +'<div style="font-size:10px;color:var(--sub);margin-top:2px;">NOTAM validity &#xB7; wx &#xB7; GPS &#xB7; terrain &#xB7; freq change</div></div>';
+    items.appendChild(div);
+  }
+}
+function calcFuel(){
+  var act=parseFloat(document.getElementById('fp-now').value);
+  var plan=parseFloat(document.getElementById('fp-plan').value);
+  var res=document.getElementById('fuel-result');
+  if(isNaN(act)||isNaN(plan)){res.textContent='Enter actual and planned fuel.';return;}
+  var d=act-plan,col=d>=0?'#22C55E':d>=-500?'#F59E0B':'#C0392B';
+  res.style.color=col;
+  res.innerHTML='ACTUAL: '+act.toLocaleString()+' kg<br>PLAN:   '+plan.toLocaleString()+' kg<br>DELTA:  '+(d>=0?'+':'')+d.toLocaleString()+' kg &mdash; <strong>'+(d>=0?'AHEAD OF PLAN':'BEHIND PLAN')+'</strong>'+(d<-500?'<br><br>&#x26A0; FUEL BURN ABOVE PLAN &mdash; assess range, consider diversion options':'<br><br>&#x2713; Fuel burn within acceptable range');
+}
+setInterval(function(){if(parsedWPs&&parsedWPs.length>0)updateTL();},60000);
+
+// ══ OFFLINE PERSISTENCE ══
+function saveState() {
+  const state = {};
+  document.querySelectorAll('.ci').forEach(function(ci, i) {
+    state['ci_' + i] = ci.classList.contains('done');
+  });
+  // Save field values
+  ['f-souls','f-fob','f-tod','s-flt','s-route-id','s-tas','s-etd','route-txt','fp-now','fp-plan'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) state['field_' + id] = el.value;
+  });
+  try { localStorage.setItem('tfd_state', JSON.stringify(state)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('tfd_state');
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    const cis = document.querySelectorAll('.ci');
+    cis.forEach(function(ci, i) {
+      if (state['ci_' + i]) ci.classList.add('done');
+    });
+    ['f-souls','f-fob','f-tod','s-flt','s-route-id','s-tas','s-etd','route-txt','fp-now','fp-plan'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el && state['field_' + id] !== undefined) el.value = state['field_' + id];
+    });
+    up();
+  } catch(e) {}
+}
+
+// Patch tc() to also save
+var _origTc = tc;
+tc = function(el) { _origTc(el); saveState(); };
+
+// Auto-save field changes
+document.addEventListener('input', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') saveState();
+});
+
+// Add reset button to topbar
+document.addEventListener('DOMContentLoaded', function() {
+  loadState();
+  // Inject reset button
+  var tb = document.querySelector('.topbar');
+  if (tb) {
+    var btn = document.createElement('button');
+    btn.textContent = 'RESET';
+    btn.title = 'Clear all checklist items for new flight';
+    btn.style.cssText = 'background:transparent;border:1px solid #3D4F6A;color:#7A8BA8;font-family:\'Share Tech Mono\',monospace;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;margin-left:4px;';
+    btn.onclick = function() {
+      if (confirm('Reset all checklist items for new flight?')) {
+        localStorage.removeItem('tfd_state');
+        location.reload();
+      }
+    };
+    tb.appendChild(btn);
+    // FIX 7: Export button
+    var expBtn = document.createElement('button');
+    expBtn.textContent = '↓ SAVE';
+    expBtn.title = 'Export state to JSON file (cross-device backup)';
+    expBtn.style.cssText = 'background:transparent;border:1px solid #1A3A20;color:#22C55E;font-family:\'Share Tech Mono\',monospace;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;margin-left:4px;';
+    expBtn.onclick = exportState;
+    tb.appendChild(expBtn);
+    // FIX 7: Import button
+    var impBtn = document.createElement('button');
+    impBtn.textContent = '↑ LOAD';
+    impBtn.title = 'Import state from JSON file';
+    impBtn.style.cssText = 'background:transparent;border:1px solid #1A2A3A;color:#3B82F6;font-family:\'Share Tech Mono\',monospace;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;margin-left:4px;';
+    impBtn.onclick = importState;
+    tb.appendChild(impBtn);
+  }
+});
+
+// Load state on DOM ready (fallback if DOMContentLoaded already fired)
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(loadState, 100);
+}
+
+// ══ LOCAL FILE LINK GUARD ══
+// On HTTPS (iPad / GitHub Pages), file:// links are blocked by the browser.
+// Intercept them and show a clear message rather than silently failing.
+document.addEventListener('click', function(e) {
+  var a = e.target.closest('a[href^="file://"]');
+  if (!a) return;
+  if (window.location.protocol !== 'file:') {
+    e.preventDefault();
+    var fname = decodeURIComponent(a.href.split('/').pop().replace(/%20/g,' '));
+    alert('📂 LOCAL FILE — MAC ONLY\n\n"' + fname + '"\n\nThis document is linked to your Mac filesystem.\nOpen TFD on your Mac to access it, or upload the file to Google Drive and update the link.');
+  }
+});
+
+// ══ FIX 7: STATE EXPORT / IMPORT ══
+function exportState(){
+  try{
+    var s=localStorage.getItem('tfd_state')||'{}';
+    var date=new Date();
+    var stamp=date.getUTCFullYear()+('0'+(date.getUTCMonth()+1)).slice(-2)+('0'+date.getUTCDate()).slice(-2)+'_'+('0'+date.getUTCHours()).slice(-2)+('0'+date.getUTCMinutes()).slice(-2)+'Z';
+    var blob=new Blob([s],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='TFD_state_'+stamp+'.json';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+  }catch(e){alert('Export failed: '+e);}
+}
+function importState(){
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='.json,application/json';
+  inp.onchange=function(e){
+    var file=e.target.files[0];if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        JSON.parse(ev.target.result); // validate JSON
+        localStorage.setItem('tfd_state',ev.target.result);
+        location.reload();
+      }catch(err){alert('Import failed — invalid file.');}
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+// ══ FIX 4: ETOPS ERA FUEL CALCULATOR ══
+function calcETOPS(){
+  var dist=parseFloat(document.getElementById('etops-dist').value)||0;
+  var tas=parseFloat(document.getElementById('etops-tas').value)||310;
+  var ff=parseFloat(document.getElementById('etops-ff').value)||7500;
+  var hold=parseFloat(document.getElementById('etops-hold').value)||30;
+  if(!dist){document.getElementById('etops-result').textContent='Enter ERA distance to calculate.';return;}
+  var timeHr=dist/tas;
+  var divFuel=timeHr*ff;
+  var holdFuel=(hold/60)*ff;
+  var approachFuel=Math.round(ff*0.15); // ~9 min approach allowance
+  var totalFuel=Math.round(divFuel+holdFuel+approachFuel);
+  var timeMin=Math.round(timeHr*60);
+  var res=document.getElementById('etops-result');
+  res.innerHTML=
+    'TIME TO ERA:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong style="color:var(--cyan);">'+timeMin+' min</strong><br>'+
+    'DIVERSION FUEL:&nbsp;&nbsp; <strong>'+Math.round(divFuel).toLocaleString()+' kg</strong><br>'+
+    'HOLD ('+hold+' min):&nbsp;&nbsp;&nbsp; <strong>'+Math.round(holdFuel).toLocaleString()+' kg</strong><br>'+
+    'APPROACH ALLOW:&nbsp;&nbsp; <strong>'+approachFuel.toLocaleString()+' kg</strong><br>'+
+    '<span style="border-top:1px solid var(--bdr);display:block;margin:4px 0;padding-top:4px;"></span>'+
+    'MIN FUEL AT ETP: <strong style="color:var(--red);font-size:13px;">'+totalFuel.toLocaleString()+' kg</strong>';
+}
+
+// ══ FIX 2: UTC LIVE CLOCK ══
+function updateClock(){
+  var n=new Date();
+  document.getElementById('utc-clock').textContent=
+    ('0'+n.getUTCHours()).slice(-2)+':'+('0'+n.getUTCMinutes()).slice(-2)+':'+('0'+n.getUTCSeconds()).slice(-2)+'Z';
+}
+updateClock();
+setInterval(updateClock,1000);
+
+</script>
+</body>
+</html>

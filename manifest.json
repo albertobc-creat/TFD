@@ -1,0 +1,26 @@
+{
+  "name": "TFD — Tactical Flight Deck",
+  "short_name": "TFD",
+  "description": "MSC AIR B777F Tactical Flight Deck — Pre-flight to execution",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080B11",
+  "theme_color": "#080B11",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "en"
+}
