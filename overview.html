@@ -110,16 +110,17 @@ a.lnk{color:var(--cyan);text-decoration:none;font-weight:700;}
     </section>
 
 
-    <section class="pn" id="faapn"><h2>NOTAMs FROM THE FAA SITE <span class="mono" id="faastat" style="font-size:11px;color:var(--sub)"></span></h2>
+    <section class="pn" id="faapn"><h2>NOTAMs + WEATHER FROM THE WEB <span class="mono" id="faastat" style="font-size:11px;color:var(--sub)"></span></h2>
       <div class="row" style="align-items:flex-start">
         <div style="flex:1;min-width:260px"><div class="note" style="margin:0 0 4px">1. Locations for this flight (airports + FIRs):</div>
           <textarea id="faalist" class="mono" readonly style="min-height:54px"></textarea>
-          <div class="row" style="margin-top:6px"><button class="btn gold" id="faacopy">COPY LIST</button><a class="btn" id="faaopen" target="_blank" rel="noopener" href="https://notams.aim.faa.gov/notamSearch/nsapp.html">2. OPEN FAA NOTAM SEARCH</a></div></div>
-        <div style="flex:1;min-width:260px"><div class="note" style="margin:0 0 4px">3. In the FAA tab click this bookmark, paste the list, wait:</div>
+          <div class="row" style="margin-top:6px"><button class="btn gold" id="faacopy">COPY LIST</button><a class="btn" id="faaopen" target="_blank" rel="noopener" href="https://notams.aim.faa.gov/notamSearch/nsapp.html">2a. OPEN FAA NOTAM SEARCH</a><a class="btn" id="awcopen" target="_blank" rel="noopener" href="https://aviationweather.gov/">2b. OPEN AVIATIONWEATHER.GOV</a></div></div>
+        <div style="flex:1;min-width:260px"><div class="note" style="margin:0 0 4px">3. In each of those two tabs click this same bookmark, paste the list, wait:</div>
           <a id="faalink" class="btn gold" href="#" style="display:inline-block" onclick="return false" draggable="true">FAA &rarr; TFD</a>
           <div class="note">One-time setup: drag the gold button <b>FAA &rarr; TFD</b> into the bookmarks bar (Mac: Cmd+Shift+B shows it). It runs in your own browser tab on the FAA site, one request per location, then sends the results here.</div></div>
       </div>
       <div id="faalog" class="note mono" style="white-space:pre-wrap;margin-top:8px"></div>
+      <div id="wxlog" class="note mono" style="white-space:pre-wrap;margin-top:8px"></div>
       <div class="note"><b>Zero results is not the same as no NOTAMs.</b> The FAA site may not hold NOTAMs for every foreign location; such locations are shown in amber. Unofficial route: it can stop working if the FAA changes its site. The official routes are the FAA NMS API and the ICAO NOTAM API (both need registration).</div>
     </section>
 
@@ -242,8 +243,24 @@ function summaryFor(adb,icao){
   var win=A.makeWindow(a.date,a.eEta,a.lEta,isNaN(pre)?60:pre,isNaN(post)?120:post),out={has:true,fetched:!!(a.updated&&a.updated.notams),notams:!!(a.notams&&a.notams.trim()),taf:!!(a.taf&&a.taf.trim()),etops:'NODATA',crit:0};
   if(win&&out.notams){var f=A.filterNotams(A.parseNotams(a.notams),win);out.crit=f.active.filter(function(n){return n.cls&&n.cls.severity==='CRIT';}).length;out.nActive=f.active.length;}
   var m=a.minima||{};
-  if(win&&out.taf&&m.dh!==''&&m.vis!==''&&m.dh!=null){var taf=A.parseTaf(a.taf,new Date());if(taf.ok)out.etops=A.evaluateTaf(taf,win,A.requirement(m),m.hdg).status;}
+  out.metar=!!(a.metar&&a.metar.trim());
+  if(win&&out.taf){
+    var taf=A.parseTaf(a.taf,new Date());
+    if(taf.ok){
+      var hasMin=m.dh!==''&&m.vis!==''&&m.dh!=null&&m.vis!=null;
+      var ev=A.evaluateTaf(taf,win,hasMin?A.requirement(m):{ceil:0,vis:0},m.hdg);
+      if(hasMin)out.etops=ev.status;
+      out.worst={vis:ev.worstVis,ceil:ev.worstCeil,hz:ev.hazards,gap:ev.gaps.length>0};
+    }else out.tafBad=true;
+  }
   return out;
+}
+function wxCell(s){
+  if(!s.has)return '';
+  if(!s.taf)return '<span style="color:var(--amber)">'+(s.metar?'METAR only, no TAF':'no weather loaded')+'</span>';
+  if(s.tafBad)return '<span style="color:var(--amber)">TAF unreadable: read the raw text</span>';
+  var w=s.worst?'<div class="note" style="margin:0">worst in window: VIS '+s.worst.vis+' m / CIG '+(s.worst.ceil==null?'none':s.worst.ceil+' ft')+(s.worst.hz.length?' · '+esc(s.worst.hz.join(' ')):'')+(s.worst.gap?' · <span style="color:var(--amber)">forecast gap</span>':'')+'</div>':'';
+  return '<span class="dot '+s.etops+'"></span>'+(s.etops==='NODATA'?'enter approach minima':s.etops)+w;
 }
 function renderAirports(){
   var adb=loadAirports(),plan=airportPlan(),pre=+(adb.settings&&adb.settings.pre),post=+(adb.settings&&adb.settings.post);
@@ -253,7 +270,7 @@ function renderAirports(){
     var info=aptInfo(x.icao),s=summaryFor(adb,x.icao);
     var win=new Date(x.from.getTime()-pre*MINMS),win2=new Date(x.to.getTime()+post*MINMS);
     var nt=!s.has?'<span style="color:var(--muted)">not created</span>':(s.notams?('<span class="dot '+(s.crit?'CRIT':'PASS')+'"></span>'+(s.crit?s.crit+' CRIT · ':'')+s.nActive+' active'):(s.fetched?'<span style="color:var(--amber)">0 from FAA (coverage unknown)</span>':'<span style="color:var(--amber)">none loaded</span>'));
-    var wx=!s.has?'':(s.taf?('<span class="dot '+s.etops+'"></span>'+(s.etops==='NODATA'?'TAF in, minima missing':s.etops)):'<span style="color:var(--amber)">no TAF</span>');
+    var wx=wxCell(s);
     h+='<tr><td><span class="tag '+x.role+'">'+x.roleTxt+'</span></td><td><b>'+esc(x.icao)+'</b><div class="note" style="margin:0">'+esc(info?info.name:'(not in airport table)')+'</div></td>'+
       '<td class="mono">'+zdhm(win)+' &rarr; '+zdhm(win2)+'<div class="note" style="margin:0">ETA '+zhm(x.from)+(x.to>x.from?' – '+zhm(x.to):'')+'</div></td><td>'+nt+'</td><td>'+wx+'</td>'+
       '<td><a class="lnk" href="airport.html#'+esc(x.icao)+'">OPEN &rarr;</a></td></tr>';
@@ -497,7 +514,7 @@ window.addEventListener('resize',function(){if(prof)drawProfile(+$('slider').val
 
 
 /* ───── FAA NOTAM import ───── */
-var FAA_ORIGIN='https://notams.aim.faa.gov';
+var FAA_ORIGIN='https://notams.aim.faa.gov',AWC_ORIGIN='https://aviationweather.gov';
 function firPlan(){
   var m=window.TFDFaa.mergeFirs(sched.firs);
   return m.map(function(f){return {icao:f.icao,role:'FIR',roleTxt:'FIR OVERFLIGHT '+f.name,from:f.entry,to:f.exit,date:f.entry.toISOString().slice(0,10),e:p2(f.entry.getUTCHours())+p2(f.entry.getUTCMinutes()),l:p2(f.exit.getUTCHours())+p2(f.exit.getUTCMinutes())};});
@@ -555,11 +572,33 @@ function applyFaa(payload){
   $('faalog').textContent='FAA NOTAMs imported ('+total+' in '+(res.requested.length-empty)+' locations, '+empty+' with nothing returned):\n'+lines.join('\n')+(res.errors.length?'\n\nPROBLEMS:\n'+res.errors.join('\n'):'');
   renderAirports();
 }
+function applyWx(payload){
+  var res=window.TFDFaa.ingestWx(payload);
+  if(!res){$('wxlog').textContent='Weather message was not in the expected format and was ignored.';return;}
+  if(!st.ofp||!sched){$('wxlog').textContent='Load an OFP first, then run the bookmark again.';return;}
+  var adb=loadAirports(),now=new Date().toISOString(),plan=airportPlan(),isAp={},lines=[],none=0;
+  plan.forEach(function(x){isAp[x.icao]=1;});
+  ensureEntries(adb,plan,'OFP '+(st.ofp.callsign||'')+' '+now);
+  res.requested.forEach(function(l){
+    if(!isAp[l])return;
+    var a=adb.airports[l],b=res.byLoc[l];a.updated=a.updated||{};
+    if(b.metar){a.metar=b.metar;a.updated.metar=now;}
+    if(b.taf){a.taf=b.taf;a.updated.taf=now;}
+    if(!b.metar&&!b.taf)none++;
+    lines.push(((b.metar&&b.taf)?'  ':'! ')+l+'  METAR '+(b.metar?'yes':'NO')+'   TAF '+(b.taf?'yes':'NO'));
+  });
+  if(!adb.current)adb.current=plan[0].icao;
+  try{localStorage.setItem(LSA,JSON.stringify(adb));}catch(e){$('wxlog').textContent='Could not save (storage full).';return;}
+  $('wxlog').textContent='WEATHER imported '+now.slice(11,16)+'Z ('+(lines.length-none)+' of '+lines.length+' airports have a report; ! = something missing):\n'+lines.join('\n')+(res.errors.length?'\n\nPROBLEMS:\n'+res.errors.join('\n'):'');
+  renderAirports();
+}
 window.addEventListener('message',function(ev){
-  if(ev.origin!==FAA_ORIGIN)return;
-  if(ev.data&&ev.data.type==='tfd-faa-notams')applyFaa(ev.data);
+  if(ev.origin!==FAA_ORIGIN&&ev.origin!==AWC_ORIGIN)return;
+  var d=ev.data;if(!d)return;
+  if(ev.origin===FAA_ORIGIN&&d.type==='tfd-faa-notams')applyFaa(d);
+  else if(ev.origin===AWC_ORIGIN&&d.type==='tfd-wx')applyWx(d);
 });
-if(window.opener&&location.hash==='#faa-import'){try{window.opener.postMessage({type:'tfd-ready'},FAA_ORIGIN);}catch(e){}}
+if(window.opener&&location.hash==='#faa-import'){[FAA_ORIGIN,AWC_ORIGIN].forEach(function(o){try{window.opener.postMessage({type:'tfd-ready'},o);}catch(e){}});}
 
 /* ───── page ───── */
 function banners(){

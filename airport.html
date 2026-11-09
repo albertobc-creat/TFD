@@ -135,8 +135,8 @@ th{color:var(--sub);font-weight:600;}
       <div class="row" style="margin-top:6px">
         <div class="f"><label>+ CIG ADD (ft)</label><input class="s mono" id="m-addc" inputmode="numeric"></div>
         <div class="f"><label>+ VIS ADD (m)</label><input class="s mono" id="m-addv" inputmode="numeric"></div>
-        <div class="f"><label>RWY HDG (&deg;)</label><input class="s mono" id="m-hdg" inputmode="numeric" placeholder="optional"></div>
-        <div class="f"><label>X-WIND LIMIT (kt)</label><input class="s mono" id="m-xw" inputmode="numeric" placeholder="optional"></div>
+        <div class="f"><label>RWY HDG (&deg;)</label><input class="s mono" id="m-hdg" inputmode="numeric" placeholder="opt."></div>
+        <div class="f"><label>X-WIND LIMIT (kt)</label><input class="s mono" id="m-xw" inputmode="numeric" placeholder="opt."></div>
       </div>
       <div class="note" id="m-note"></div>
       <div id="etops-out"></div>
@@ -319,7 +319,19 @@ function renderEtops(){
   $('m-addc').placeholder=def.ceil;$('m-addv').placeholder=def.vis;
   $('m-note').innerHTML='Planning minima = approach minima + add-ons. Defaults ('+def.ceil+' ft / '+def.vis+' m) are my reading of EASA SPA.ETOPS.115 and are <b>unverified</b> &mdash; confirm against the current regulation and OM-A 8.5, then overwrite the add-ons if different.';
   var h='';
-  if(!req){out.innerHTML='<div class="verdict NODATA">NO MINIMA</div><div class="note">Enter the DA/H (or MDA/H) and RVR/VIS of the approach you plan to use at this alternate.</div>';return;}
+  if(!req){
+    var h0='<div class="verdict NODATA">NO MINIMA</div><div class="note">Enter the DA/H (or MDA/H) and RVR/VIS of the approach you plan to use at this alternate. Saved per airport for future flights.</div>';
+    if(win&&a.taf.trim()){
+      var tf=A.parseTaf(a.taf,new Date());
+      if(tf.ok){
+        var e0=A.evaluateTaf(tf,win,{ceil:0,vis:0},m.hdg);
+        h0+='<h3>FORECAST WORST CASE IN THE WINDOW</h3><div class="row"><div class="kv">WORST VIS <b>'+e0.worstVis+' m</b></div><div class="kv">WORST CIG <b>'+(e0.worstCeil==null?'none':e0.worstCeil+' ft')+'</b></div></div>';
+        if(e0.hazards.length)h0+='<div class="row" style="margin-top:6px">'+e0.hazards.map(function(x){return '<div class="kv warn">'+esc(x.replace('FZ_ICE','FZ/ICE PELLETS/HAIL'))+'</div>';}).join('')+'</div>';
+        if(e0.gaps.length)h0+='<div class="note warn">No forecast coverage for part of the window.</div>';
+      }
+    }
+    out.innerHTML=h0;return;
+  }
   h+='<div class="row"><div class="kv">REQ CIG &ge; <b>'+req.ceil+' ft</b></div><div class="kv">REQ VIS &ge; <b>'+req.vis+' m</b></div></div>';
   if(!win){out.innerHTML=h+'<div class="verdict NODATA">NO WINDOW</div><div class="note">Enter date and earliest/latest ETA.</div>';return;}
   if(!a.taf.trim()){out.innerHTML=h+'<div class="verdict NODATA">NO TAF</div>';return;}

@@ -1,4 +1,4 @@
-const CACHE = 'tfd-v6-1';
+const CACHE = 'tfd-v6-2';
 const LOCAL = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-180.png',
   './overview.html', './airport.html', './airport.js', './ofp.js', './pdftext.js', './faa.js', './faa-bookmarklet.js',
