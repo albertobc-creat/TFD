@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TFD — Airport Brief</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --gold:#C8991A;--orng:#E05A20;--red:#E5483A;--grn:#22C55E;--blu:#3B82F6;--cyan:#06B6D4;--amber:#F59E0B;
+  --bg:#080B11;--bg2:#0E1219;--bg3:#141924;--card:#161D28;--card2:#1C2435;
+  --bdr:#232D3F;--bdr2:#2D3A52;--txt:#E2E8F4;--sub:#7A8BA8;--muted:#3D4F6A;
+  --safe-top:env(safe-area-inset-top,0px);
+}
+html{background:var(--bg);color:var(--txt);font-family:'Barlow',-apple-system,Helvetica,Arial,sans-serif;}
+body{min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono',ui-monospace,Menlo,monospace;}
+.top{position:sticky;top:0;z-index:50;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:calc(var(--safe-top) + 8px) 14px 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.top a.back{color:var(--gold);text-decoration:none;font-weight:700;border:1px solid var(--gold);border-radius:6px;padding:5px 10px;font-size:13px;}
+.top h1{font-size:17px;letter-spacing:1px;font-weight:700;}
+.top .sp{flex:1;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--bdr2);color:var(--txt);border-radius:16px;padding:5px 11px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.5px;}
+.chip.on{border-color:var(--gold);background:#2a2008;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block;}
+.dot.PASS{background:var(--grn)}.dot.MARGINAL{background:var(--amber)}.dot.FAIL{background:var(--red)}.dot.INCOMPLETE{background:var(--cyan)}.dot.CRIT{background:var(--red)}
+button,select,input,textarea{font-family:inherit;}
+.btn{background:var(--card2);color:var(--txt);border:1px solid var(--bdr2);border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;}
+.btn.gold{border-color:var(--gold);color:var(--gold);}
+.btn.red{border-color:var(--red);color:var(--red);}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--bdr);}
+.f{display:flex;flex-direction:column;gap:3px;}
+.f label{font-size:10px;color:var(--sub);letter-spacing:1px;}
+.f input,.f select{background:var(--card);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt);padding:7px 8px;font-size:14px;min-width:0;}
+.f input.s{width:78px}.f input.m{width:120px}
+.winline{font-size:12px;color:var(--cyan);padding:0 14px 8px;background:var(--bg3);border-bottom:1px solid var(--bdr);}
+.cols{display:grid;gap:10px;padding:10px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start;}
+@media (max-width:1250px){.cols{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:720px){.cols{grid-template-columns:minmax(0,1fr);}}
+.pn{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:10px;min-width:0;}
+.pn h2{font-size:14px;letter-spacing:1.5px;color:var(--gold);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;}
+.pn h3{font-size:11px;letter-spacing:1px;color:var(--sub);margin:10px 0 4px;}
+textarea{width:100%;min-height:96px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt);font-size:11.5px;padding:8px;resize:vertical;outline:none;line-height:1.45;}
+.age{font-size:10px;color:var(--sub);margin-top:3px;}
+.age.old{color:var(--amber);}
+.sev{display:inline-block;font-size:10px;font-weight:800;border-radius:3px;padding:1px 6px;letter-spacing:.8px;color:#000;}
+.sev.CRIT{background:var(--red)}.sev.HIGH{background:var(--orng)}.sev.MED{background:var(--amber)}.sev.INFO{background:var(--sub)}
+.nt{border:1px solid var(--bdr2);border-left-width:4px;border-radius:6px;padding:7px 8px;margin-bottom:6px;background:var(--bg3);}
+.nt.CRIT{border-left-color:var(--red)}.nt.HIGH{border-left-color:var(--orng)}.nt.MED{border-left-color:var(--amber)}.nt.INFO{border-left-color:var(--sub)}
+.nt .h{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px;color:var(--sub);}
+.nt .e{font-size:12.5px;margin-top:4px;line-height:1.4;white-space:pre-wrap;word-break:break-word;}
+.nt .v{font-size:10.5px;color:var(--cyan);margin-top:3px;}
+.flag{font-size:10px;border:1px solid var(--amber);color:var(--amber);border-radius:3px;padding:0 5px;}
+.nt.unp{border-style:dashed;}
+details summary{cursor:pointer;font-size:11px;color:var(--sub);margin-top:4px;}
+pre.raw{white-space:pre-wrap;word-break:break-word;font-size:10.5px;color:var(--sub);margin-top:4px;}
+.verdict{font-size:22px;font-weight:800;letter-spacing:2px;text-align:center;border-radius:8px;padding:10px;margin:6px 0;color:#000;}
+.verdict.PASS{background:var(--grn)}.verdict.MARGINAL{background:var(--amber)}.verdict.FAIL{background:var(--red)}.verdict.INCOMPLETE{background:var(--cyan)}.verdict.NODATA{background:var(--muted);color:var(--txt)}
+.row{display:flex;gap:8px;flex-wrap:wrap;}
+.kv{background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:12px;}
+.kv b{color:var(--gold);}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th,td{border-bottom:1px solid var(--bdr);padding:3px 4px;text-align:left;vertical-align:top;}
+th{color:var(--sub);font-weight:600;}
+.bad{color:var(--red);font-weight:700}.warn{color:var(--amber);font-weight:700}.ok{color:var(--grn);font-weight:700}
+.note{font-size:10.5px;color:var(--sub);line-height:1.4;margin-top:6px;}
+.plate{background:#fff;border-radius:6px;overflow:auto;max-height:70vh;text-align:center;}
+.plate img{width:100%;display:block;}
+.plate iframe{width:100%;height:70vh;border:0;background:#fff;}
+.empty{border:1px dashed var(--bdr2);border-radius:8px;padding:18px;text-align:center;color:var(--sub);font-size:12.5px;line-height:1.5;}
+#splash{padding:30px 16px;text-align:center;color:var(--sub);}
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="back" href="index.html">&larr; TFD</a>
+  <h1>AIRPORT BRIEF</h1>
+  <div class="chips" id="apchips"></div>
+  <button class="btn gold" id="addap">+ AIRPORT</button>
+  <span class="sp"></span>
+  <button class="btn" id="settingsbtn">&#9881; SETTINGS</button>
+</div>
+
+<div id="settings" class="bar" style="display:none">
+  <div class="f"><label>WINDOW: MINUTES BEFORE EARLIEST ETA</label><input class="s mono" id="s-pre" inputmode="numeric"></div>
+  <div class="f"><label>MINUTES AFTER LATEST ETA</label><input class="s mono" id="s-post" inputmode="numeric"></div>
+  <div class="f" style="flex:1;min-width:260px"><label>WEATHER RELAY URL (optional, enables FETCH)</label><input class="mono" id="s-relay" placeholder="https://YOUR-SITE.netlify.app/.netlify/functions/wx" style="width:100%"></div>
+  <button class="btn red" id="wipe">CLEAR ALL SAVED DATA</button>
+</div>
+
+<div id="splash" style="display:none"></div>
+<div id="main" style="display:none">
+  <div class="bar">
+    <div class="f"><label>DATE (UTC)</label><input class="m mono" id="in-date" type="date"></div>
+    <div class="f"><label>EARLIEST ETA (Z)</label><input class="s mono" id="in-eeta" placeholder="1800" inputmode="numeric" maxlength="5"></div>
+    <div class="f"><label>LATEST ETA (Z)</label><input class="s mono" id="in-leta" placeholder="2000" inputmode="numeric" maxlength="5"></div>
+    <div class="f"><label>FROM OFP ETOPS TABLE / ALTERNATE ETAs</label><span class="note" style="margin:0">Earliest = normal cruise; latest = diversion profile. Window below adds your margins.</span></div>
+    <span style="flex:1"></span>
+    <button class="btn red" id="delap">REMOVE AIRPORT</button>
+  </div>
+  <div class="winline mono" id="winline"></div>
+
+  <div class="cols">
+    <section class="pn" id="p-chart"><h2>CHART / PLATES <span><label class="btn gold" style="cursor:pointer">+ IMPORT<input type="file" id="plate-file" accept="image/*,application/pdf" multiple hidden></label></span></h2>
+      <div class="chips" id="platetabs" style="margin-bottom:6px"></div>
+      <div id="plateview"></div>
+      <div class="note">Plates are copyrighted (Jeppesen etc.). They are stored only in this browser on this device and are never uploaded or committed. Export the page as image/PDF from your EFB and import it here.</div>
+    </section>
+
+    <section class="pn" id="p-notam"><h2>NOTAMs IN WINDOW <span class="mono" id="notam-counts" style="font-size:11px"></span></h2>
+      <textarea id="in-notam" class="mono" spellcheck="false" placeholder="Paste NOTAMs for this airport (ICAO format: A1234/26 NOTAMN / Q) / A) / B) / C) / E) ...)"></textarea>
+      <div class="age" id="age-notam"></div>
+      <div id="notam-out"></div>
+    </section>
+
+    <section class="pn" id="p-wx"><h2>WEATHER &mdash; ACTUAL / FORECAST <button class="btn" id="fetchwx" style="display:none">FETCH</button></h2>
+      <h3 style="margin-top:0">METAR (ACTUAL)</h3>
+      <textarea id="in-metar" class="mono" spellcheck="false" style="min-height:54px" placeholder="METAR LIMC 091250Z ..."></textarea>
+      <div class="age" id="age-metar"></div>
+      <div id="metar-out"></div>
+      <h3>TAF (FORECAST)</h3>
+      <textarea id="in-taf" class="mono" spellcheck="false" style="min-height:90px" placeholder="TAF LIMC 091100Z 0912/1018 ..."></textarea>
+      <div class="age" id="age-taf"></div>
+      <div id="taf-out"></div>
+    </section>
+
+    <section class="pn" id="p-etops"><h2>ETOPS ALTERNATE WX</h2>
+      <div class="row">
+        <div class="f"><label>APPROACH USED</label>
+          <select id="m-type"><option value="precision">Precision (ILS)</option><option value="nonprecision">Non-precision</option><option value="circling">Circling</option></select></div>
+        <div class="f"><label>DA/H or MDA/H (ft, height)</label><input class="s mono" id="m-dh" inputmode="numeric"></div>
+        <div class="f"><label>RVR/VIS min (m)</label><input class="s mono" id="m-vis" inputmode="numeric"></div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <div class="f"><label>+ CIG ADD (ft)</label><input class="s mono" id="m-addc" inputmode="numeric"></div>
+        <div class="f"><label>+ VIS ADD (m)</label><input class="s mono" id="m-addv" inputmode="numeric"></div>
+        <div class="f"><label>RWY HDG (&deg;)</label><input class="s mono" id="m-hdg" inputmode="numeric" placeholder="optional"></div>
+        <div class="f"><label>X-WIND LIMIT (kt)</label><input class="s mono" id="m-xw" inputmode="numeric" placeholder="optional"></div>
+      </div>
+      <div class="note" id="m-note"></div>
+      <div id="etops-out"></div>
+    </section>
+  </div>
+</div>
+
+<script src="airport.js"></script>
+<script>
+(function(){
+'use strict';
+var A=window.TFDAirport;
+var LS='tfd_airports_v1';
+var db={airports:{},order:[],current:null,settings:{pre:60,post:120,relay:''}};
+var $=function(id){return document.getElementById(id);};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function todayUTC(){return new Date().toISOString().slice(0,10);}
+
+function load(){
+  try{var r=localStorage.getItem(LS);if(r){var o=JSON.parse(r);if(o&&o.airports){db=o;db.settings=db.settings||{pre:60,post:120,relay:''};}}}catch(e){}
+}
+function save(){try{localStorage.setItem(LS,JSON.stringify(db));}catch(e){}}
+
+function newAp(icao){
+  return {icao:icao,date:todayUTC(),eEta:'',lEta:'',notams:'',metar:'',taf:'',
+    minima:{type:'precision',dh:'',vis:'',addCeil:'',addVis:'',hdg:'',xw:''},updated:{}};
+}
+function ap(){return db.airports[db.current];}
+
+/* ───── plates in IndexedDB (local only) ───── */
+var idb=null;
+function openDb(){
+  return new Promise(function(res){
+    if(!window.indexedDB){res(null);return;}
+    var rq=indexedDB.open('tfd-plates',1);
+    rq.onupgradeneeded=function(){rq.result.createObjectStore('plates',{keyPath:'id'});};
+    rq.onsuccess=function(){res(rq.result);};
+    rq.onerror=function(){res(null);};
+  });
+}
+function idbAll(icao){
+  return new Promise(function(res){
+    if(!idb){res([]);return;}
+    var out=[],rq=idb.transaction('plates').objectStore('plates').openCursor();
+    rq.onsuccess=function(){var c=rq.result;if(c){if(c.value.icao===icao)out.push(c.value);c.continue();}else res(out);};
+    rq.onerror=function(){res(out);};
+  });
+}
+function idbPut(v){return new Promise(function(res){if(!idb){res(false);return;}var t=idb.transaction('plates','readwrite');t.objectStore('plates').put(v);t.oncomplete=function(){res(true);};t.onerror=function(){res(false);};});}
+function idbDel(id){return new Promise(function(res){if(!idb){res();return;}var t=idb.transaction('plates','readwrite');t.objectStore('plates').delete(id);t.oncomplete=res;t.onerror=res;});}
+
+var plates=[],plateSel=null,plateUrl=null,zoom=100;
+function renderPlates(){
+  idbAll(db.current).then(function(list){
+    plates=list;
+    if(!plates.some(function(p){return p.id===plateSel;}))plateSel=plates.length?plates[0].id:null;
+    var tabs=$('platetabs');
+    tabs.innerHTML=plates.map(function(p){return '<span class="chip'+(p.id===plateSel?' on':'')+'" data-id="'+esc(p.id)+'">'+esc(p.name)+'</span>';}).join('');
+    Array.prototype.forEach.call(tabs.children,function(el){el.onclick=function(){plateSel=el.getAttribute('data-id');renderPlates();};});
+    var v=$('plateview');
+    if(plateUrl){URL.revokeObjectURL(plateUrl);plateUrl=null;}
+    var p=plates.filter(function(x){return x.id===plateSel;})[0];
+    if(!p){v.innerHTML='<div class="empty">No plate stored for '+esc(db.current)+'.<br>Tap <b>+ IMPORT</b> and pick an airport chart or approach plate (image or PDF) from this device.</div>';return;}
+    plateUrl=URL.createObjectURL(p.blob);
+    var isPdf=/pdf/i.test(p.blob.type);
+    v.innerHTML='<div class="row" style="margin-bottom:6px">'+
+      (isPdf?'':'<button class="btn" id="zin">+</button><button class="btn" id="zout">&minus;</button>')+
+      '<a class="btn" target="_blank" rel="noopener" href="'+plateUrl+'">OPEN FULL</a><button class="btn red" id="pdel">DELETE</button></div>'+
+      '<div class="plate">'+(isPdf?'<iframe src="'+plateUrl+'"></iframe>':'<img id="pimg" alt="'+esc(p.name)+'" style="width:'+zoom+'%;max-width:none">')+'</div>';
+    if(!isPdf){$('zin').onclick=function(){zoom=Math.min(400,zoom+25);$('pimg').style.width=zoom+'%';};$('zout').onclick=function(){zoom=Math.max(50,zoom-25);$('pimg').style.width=zoom+'%';};}
+    $('pdel').onclick=function(){if(confirm('Delete plate "'+p.name+'" from this device?'))idbDel(p.id).then(renderPlates);};
+  });
+}
+
+/* ───── analysis ───── */
+function ageTxt(iso){
+  if(!iso)return {t:'',old:false};
+  var m=Math.round((Date.now()-new Date(iso).getTime())/60000);
+  var t=m<1?'just now':m<60?m+' min ago':m<2880?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago';
+  return {t:t,old:m>180};
+}
+function setAge(id,key,label){
+  var a=ap(),g=ageTxt(a.updated[key]),el=$(id);
+  el.textContent=a[key]?(label+' pasted '+g.t+(g.old?' — CHECK IT IS CURRENT':'')):'';
+  el.className='age'+(g.old?' old':'');
+}
+function getWin(){
+  var a=ap();
+  return A.makeWindow(a.date,a.eEta,a.lEta,+db.settings.pre,+db.settings.post);
+}
+function getReq(){
+  var m=ap().minima;
+  if(m.dh===''||m.vis===''||isNaN(+m.dh)||isNaN(+m.vis))return null;
+  return A.requirement(m);
+}
+function summary(icao){
+  var a=db.airports[icao],out={etops:'NODATA',crit:0};
+  var win=A.makeWindow(a.date,a.eEta,a.lEta,+db.settings.pre,+db.settings.post);
+  if(win&&a.notams){var f=A.filterNotams(A.parseNotams(a.notams),win);out.crit=f.active.filter(function(n){return n.cls&&n.cls.severity==='CRIT';}).length;}
+  var m=a.minima;
+  if(win&&a.taf&&m.dh!==''&&m.vis!==''){
+    var taf=A.parseTaf(a.taf,new Date());
+    if(taf.ok)out.etops=A.evaluateTaf(taf,win,A.requirement(m),m.hdg).status;
+  }
+  return out;
+}
+function renderBar(){
+  var h=db.order.map(function(i){
+    var s=summary(i);
+    return '<span class="chip'+(i===db.current?' on':'')+'" data-i="'+i+'"><span class="dot '+(s.crit?'CRIT':s.etops)+'"></span>'+i+'</span>';
+  }).join('');
+  $('apchips').innerHTML=h;
+  Array.prototype.forEach.call($('apchips').children,function(el){el.onclick=function(){db.current=el.getAttribute('data-i');save();renderAll(true);};});
+}
+
+function notamCard(n,compact){
+  var c=n.cls||{severity:'INFO',group:'Unparsed',flags:[]};
+  var val=n.parsed?(A.fmtZ(n.b)+' → '+(n.cPerm?'PERM':A.fmtZ(n.c))+(n.cEst?' EST':'')):'validity unreadable — verify in raw text';
+  var head='<span class="sev '+c.severity+'">'+(n.parsed?c.severity:'?')+'</span><b>'+esc(n.id||'UNPARSED')+'</b><span>'+esc(c.group)+'</span>'+
+    c.flags.map(function(f){return '<span class="flag">'+esc(f)+'</span>';}).join('');
+  return '<div class="nt '+(n.parsed?c.severity:'INFO unp')+'"><div class="h">'+head+'</div>'+
+    '<div class="e">'+esc(n.e||n.raw)+'</div>'+
+    '<div class="v mono">'+esc(val)+(n.d?' · D) '+esc(n.d):'')+'</div>'+
+    (compact?'':'<details><summary>raw text</summary><pre class="raw mono">'+esc(n.raw)+'</pre></details>')+'</div>';
+}
+function renderNotams(){
+  var a=ap(),win=getWin(),out=$('notam-out');
+  setAge('age-notam','notams','NOTAMs');
+  if(!a.notams.trim()){$('notam-counts').textContent='';out.innerHTML='<div class="empty">Paste the NOTAM text for '+esc(a.icao)+'. Nothing is hidden: items that cannot be read are shown as UNPARSED.</div>';return;}
+  var list=A.parseNotams(a.notams);
+  if(!win){
+    $('notam-counts').textContent=list.length+' total';
+    out.innerHTML='<div class="empty" style="border-color:var(--amber);color:var(--amber)">Enter date and earliest/latest ETA to filter by time. Showing ALL '+list.length+' NOTAMs unfiltered.</div>'+list.map(function(n){return notamCard(n);}).join('');
+    return;
+  }
+  var f=A.filterNotams(list,win);
+  var cnt={CRIT:0,HIGH:0,MED:0,INFO:0,UNP:0};
+  f.active.forEach(function(n){if(!n.parsed)cnt.UNP++;else cnt[n.cls.severity]++;});
+  $('notam-counts').innerHTML='<span class="bad">'+cnt.CRIT+' CRIT</span> · <span class="warn">'+cnt.HIGH+' HIGH</span> · '+cnt.MED+' MED · '+cnt.INFO+' INFO'+(cnt.UNP?' · <span class="warn">'+cnt.UNP+' UNPARSED</span>':'');
+  var h=f.active.map(function(n){return notamCard(n);}).join('')||'<div class="empty">No NOTAM active in the window.</div>';
+  function fold(title,arr){return arr.length?'<details><summary>'+title+' ('+arr.length+')</summary>'+arr.map(function(n){return notamCard(n,true);}).join('')+'</details>':'';}
+  h+=fold('Starts after window',f.future)+fold('Ended before window',f.expired)+fold('Cancelled / replaced',f.superseded);
+  out.innerHTML=h;
+}
+
+function stateLine(s,req){
+  var chk=req?A.checkState(s,req):null;
+  var w=s.wind?(s.wind.dir==null?'VRB':String(s.wind.dir).padStart(3,'0'))+'/'+s.wind.spd+(s.wind.gust?'G'+s.wind.gust:'')+'kt':'—';
+  return '<div class="row"><div class="kv">WIND <b>'+w+'</b></div><div class="kv">VIS <b>'+(s.vis==null?'—':s.vis+' m')+'</b></div><div class="kv">CIG <b>'+(s.ceil==null?'none':s.ceil+' ft')+'</b></div>'+
+    ((s.wx&&s.wx.length)?'<div class="kv">WX <b>'+esc(s.wx.join(' '))+'</b></div>':'')+
+    (chk?'<div class="kv '+(chk.ok?'ok':'bad')+'">'+(chk.ok?'ABOVE ETOPS MINIMA':'BELOW: '+esc(chk.why.join(', ')))+'</div>':'')+'</div>';
+}
+function renderWx(){
+  var a=ap(),req=getReq();
+  setAge('age-metar','metar','METAR');setAge('age-taf','taf','TAF');
+  var mo=$('metar-out'),to=$('taf-out');
+  if(a.metar.trim()){
+    var m=A.parseMetar(a.metar);
+    if(!m.ok)mo.innerHTML='<div class="note bad">Could not read this METAR — use the raw text.</div>';
+    else{
+      mo.innerHTML='<div class="note mono" style="margin-top:4px">'+esc(m.icao||'')+' '+esc(m.time||'')+(m.qnh?' · QNH '+m.qnh:'')+'</div>'+stateLine(m.state,req);
+      var xw=A.crosswind(m.state.wind,a.minima.hdg);
+      if(xw)mo.innerHTML+='<div class="note">Crosswind on RWY '+esc(a.minima.hdg)+'&deg;: <b class="'+((a.minima.xw&&xw.cross>+a.minima.xw)?'bad':'ok')+'">'+xw.cross+' kt</b>'+(xw.variable?' (VRB, worst case)':'')+'</div>';
+    }
+  }else mo.innerHTML='';
+  if(a.taf.trim()){
+    var taf=A.parseTaf(a.taf,new Date());
+    if(!taf.ok){to.innerHTML='<div class="note bad">'+esc(taf.error)+' — use the raw text.</div>';return;}
+    var rows=taf.events.concat(taf.tempos).sort(function(x,y){return x.s-y.s;}).map(function(e){
+      var lab=e.kind==='PROB'?'PROB'+e.prob:e.kind;
+      return '<tr><td>'+lab+'</td><td class="mono">'+A.fmtZ(e.s)+(e.e?'→'+A.fmtZ(e.e):'')+'</td><td class="mono">'+esc(e.tokens.join(' '))+'</td></tr>';
+    }).join('');
+    to.innerHTML='<div class="note mono">Valid '+A.fmtZ(taf.validFrom)+' → '+A.fmtZ(taf.validTo)+'</div><table><tr><th>TYPE</th><th>TIME</th><th>GROUP</th></tr>'+rows+'</table>';
+  }else to.innerHTML='';
+}
+
+function renderEtops(){
+  var a=ap(),m=a.minima,req=getReq(),win=getWin(),out=$('etops-out');
+  var def=A.ETOPS_ADDONS[m.type];
+  $('m-addc').placeholder=def.ceil;$('m-addv').placeholder=def.vis;
+  $('m-note').innerHTML='Planning minima = approach minima + add-ons. Defaults ('+def.ceil+' ft / '+def.vis+' m) are my reading of EASA SPA.ETOPS.115 and are <b>unverified</b> &mdash; confirm against the current regulation and OM-A 8.5, then overwrite the add-ons if different.';
+  var h='';
+  if(!req){out.innerHTML='<div class="verdict NODATA">NO MINIMA</div><div class="note">Enter the DA/H (or MDA/H) and RVR/VIS of the approach you plan to use at this alternate.</div>';return;}
+  h+='<div class="row"><div class="kv">REQ CIG &ge; <b>'+req.ceil+' ft</b></div><div class="kv">REQ VIS &ge; <b>'+req.vis+' m</b></div></div>';
+  if(!win){out.innerHTML=h+'<div class="verdict NODATA">NO WINDOW</div><div class="note">Enter date and earliest/latest ETA.</div>';return;}
+  if(!a.taf.trim()){out.innerHTML=h+'<div class="verdict NODATA">NO TAF</div>';return;}
+  var taf=A.parseTaf(a.taf,new Date());
+  if(!taf.ok){out.innerHTML=h+'<div class="verdict NODATA">TAF UNREADABLE</div>';return;}
+  var ev=A.evaluateTaf(taf,win,req,m.hdg);
+  h+='<div class="verdict '+ev.status+'">'+ev.status+'</div>';
+  h+='<div class="note">Window '+A.fmtZ(win.start)+' → '+A.fmtZ(win.end)+'. Prevailing conditions (FM, BECMG transition, base) failing = FAIL. Only TEMPO/PROB below minima = MARGINAL. Window outside forecast validity = INCOMPLETE.</div>';
+  h+='<div class="row" style="margin-top:6px"><div class="kv">WORST VIS <b>'+ev.worstVis+' m</b></div><div class="kv">WORST CIG <b>'+(ev.worstCeil==null?'none':ev.worstCeil+' ft')+'</b></div></div>';
+  if(ev.hazards.length)h+='<div class="row" style="margin-top:6px">'+ev.hazards.map(function(x){return '<div class="kv warn">'+esc(x.replace('FZ_ICE','FZ/ICE PELLETS/HAIL'))+'</div>';}).join('')+'</div>';
+  if(ev.maxXw){
+    var over=m.xw&&ev.maxXw.cross>+m.xw;
+    h+='<div class="note">Max forecast crosswind RWY '+esc(m.hdg)+'&deg;: <b class="'+(over?'bad':'ok')+'">'+ev.maxXw.cross+' kt</b> at '+A.fmtZ(ev.maxXw.at)+(m.xw?' (limit '+esc(m.xw)+')':'')+'</div>';
+  }
+  if(ev.intervals.length){
+    h+='<h3>BELOW MINIMA</h3><table><tr><th></th><th>FROM</th><th>TO</th><th>WHY</th></tr>'+ev.intervals.map(function(i){
+      return '<tr><td class="'+(i.kind==='FAIL'?'bad':'warn')+'">'+i.kind+'</td><td class="mono">'+A.fmtZ(i.from)+'</td><td class="mono">'+A.fmtZ(new Date(i.to.getTime()+15*60000))+'</td><td>'+esc(i.reason)+'</td></tr>';
+    }).join('')+'</table>';
+  }
+  if(ev.gaps.length)h+='<h3>NO FORECAST COVERAGE</h3><table>'+ev.gaps.map(function(g){return '<tr><td class="mono">'+A.fmtZ(g.from)+' → '+A.fmtZ(new Date(g.to.getTime()+15*60000))+'</td></tr>';}).join('')+'</table>';
+  h+='<div class="note">Advisory aid only. The OFP, dispatch and company ETOPS rules govern. Always check the raw TAF.</div>';
+  out.innerHTML=h;
+}
+
+function renderWinline(){
+  var w=getWin(),role=ap().role?ap().role+' · ':'';
+  $('winline').textContent=w?(role+'WINDOW '+A.fmtZ(w.start)+' → '+A.fmtZ(w.end)+'   (ETA '+A.fmtZ(w.earliest)+' – '+A.fmtZ(w.latest)+', margins −'+db.settings.pre+' / +'+db.settings.post+' min)'):role+'WINDOW: enter date, earliest and latest ETA';
+}
+
+function refresh(){renderWinline();renderNotams();renderWx();renderEtops();renderBar();}
+
+function renderAll(switching){
+  var has=db.order.length>0&&db.current;
+  $('main').style.display=has?'':'none';
+  $('splash').style.display=has?'none':'';
+  if(!has){
+    $('splash').innerHTML='<div class="empty" style="max-width:520px;margin:20px auto">No airport yet. Tap <b>+ AIRPORT</b> and enter an ICAO code (destination, ETOPS alternates, takeoff alternate).<br><br>Per airport: set the ETA window, paste NOTAMs and METAR/TAF, enter the approach minima. Everything is saved on this device and kept between sessions.</div>';
+    renderBar();return;
+  }
+  var a=ap();
+  if(switching){
+    $('in-date').value=a.date;$('in-eeta').value=a.eEta;$('in-leta').value=a.lEta;
+    $('in-notam').value=a.notams;$('in-metar').value=a.metar;$('in-taf').value=a.taf;
+    $('m-type').value=a.minima.type;$('m-dh').value=a.minima.dh;$('m-vis').value=a.minima.vis;
+    $('m-addc').value=a.minima.addCeil;$('m-addv').value=a.minima.addVis;$('m-hdg').value=a.minima.hdg;$('m-xw').value=a.minima.xw;
+    renderPlates();
+  }
+  $('fetchwx').style.display=db.settings.relay?'':'none';
+  refresh();
+}
+
+/* ───── wiring ───── */
+function bind(id,fn,evt){$(id).addEventListener(evt||'input',fn);}
+function field(id,setter,textKey){
+  bind(id,function(){
+    setter(ap(),$(id).value);
+    if(textKey)ap().updated[textKey]=new Date().toISOString();
+    save();refresh();
+  });
+}
+field('in-date',function(a,v){a.date=v;});
+field('in-eeta',function(a,v){a.eEta=v.trim();});
+field('in-leta',function(a,v){a.lEta=v.trim();});
+field('in-notam',function(a,v){a.notams=v;},'notams');
+field('in-metar',function(a,v){a.metar=v;},'metar');
+field('in-taf',function(a,v){a.taf=v;},'taf');
+field('m-type',function(a,v){a.minima.type=v;});
+field('m-dh',function(a,v){a.minima.dh=v.trim();});
+field('m-vis',function(a,v){a.minima.vis=v.trim();});
+field('m-addc',function(a,v){a.minima.addCeil=v.trim();});
+field('m-addv',function(a,v){a.minima.addVis=v.trim();});
+field('m-hdg',function(a,v){a.minima.hdg=v.trim();});
+field('m-xw',function(a,v){a.minima.xw=v.trim();});
+
+$('addap').onclick=function(){
+  var v=(prompt('ICAO code (4 letters):')||'').trim().toUpperCase();
+  if(!/^[A-Z]{4}$/.test(v)){if(v)alert('Enter a 4-letter ICAO code.');return;}
+  if(!db.airports[v]){db.airports[v]=newAp(v);db.order.push(v);}
+  db.current=v;save();renderAll(true);
+};
+$('delap').onclick=function(){
+  var i=db.current;
+  if(!confirm('Remove '+i+' and its saved NOTAM/WX data? (Plates stay on this device.)'))return;
+  delete db.airports[i];db.order=db.order.filter(function(x){return x!==i;});db.current=db.order[0]||null;save();renderAll(true);
+};
+$('settingsbtn').onclick=function(){var s=$('settings');s.style.display=s.style.display==='none'?'':'none';};
+$('s-pre').oninput=function(){db.settings.pre=+this.value||0;save();if(db.current)refresh();};
+$('s-post').oninput=function(){db.settings.post=+this.value||0;save();if(db.current)refresh();};
+$('s-relay').oninput=function(){db.settings.relay=this.value.trim();save();$('fetchwx').style.display=db.settings.relay&&db.current?'':'none';};
+$('wipe').onclick=function(){if(confirm('Delete ALL saved airports, NOTAMs and weather from this device?')){try{localStorage.removeItem(LS);}catch(e){}db={airports:{},order:[],current:null,settings:db.settings};renderAll(true);}};
+
+$('plate-file').onchange=function(){
+  var files=Array.prototype.slice.call(this.files);this.value='';
+  var chain=Promise.resolve();
+  files.forEach(function(f){
+    chain=chain.then(function(){
+      var nm=prompt('Name for this plate (e.g. AIRPORT, ILS 02L):',f.name.replace(/\.[^.]+$/,''));
+      if(nm===null)return;
+      var id=db.current+'|'+nm;
+      return idbPut({id:id,icao:db.current,name:nm,blob:f}).then(function(ok){if(!ok)alert('Could not store plate (storage unavailable or full).');plateSel=id;});
+    });
+  });
+  chain.then(renderPlates);
+};
+
+$('fetchwx').onclick=function(){
+  var base=db.settings.relay,i=db.current,btn=this;
+  btn.textContent='…';
+  function get(t){return fetch(base+(base.indexOf('?')<0?'?':'&')+'type='+t+'&ids='+i).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});}
+  Promise.all([get('metar'),get('taf')]).then(function(r){
+    var a=ap(),now=new Date().toISOString();
+    if(r[0]&&r[0][0]&&r[0][0].rawOb){a.metar=r[0][0].rawOb;a.updated.metar=now;$('in-metar').value=a.metar;}
+    if(r[1]&&r[1][0]&&r[1][0].rawTAF){a.taf=r[1][0].rawTAF;a.updated.taf=now;$('in-taf').value=a.taf;}
+    save();refresh();
+  }).catch(function(e){alert('Fetch failed ('+e.message+'). Paste METAR/TAF manually.');}).then(function(){btn.textContent='FETCH';});
+};
+
+setInterval(function(){if(db.current&&document.visibilityState==='visible'){setAge('age-notam','notams','NOTAMs');setAge('age-metar','metar','METAR');setAge('age-taf','taf','TAF');}},60000);
+
+load();
+$('s-pre').value=db.settings.pre;$('s-post').value=db.settings.post;$('s-relay').value=db.settings.relay||'';
+if(!db.current&&db.order.length)db.current=db.order[0];
+(function(){var h=(location.hash||'').replace('#','').toUpperCase();if(/^[A-Z]{4}$/.test(h)){if(!db.airports[h]){db.airports[h]=newAp(h);db.order.push(h);}db.current=h;save();}})();
+window.addEventListener('hashchange',function(){var h=(location.hash||'').replace('#','').toUpperCase();if(db.airports[h]){db.current=h;save();renderAll(true);}});
+openDb().then(function(d){idb=d;renderAll(true);});
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
+})();
+</script>
+</body>
+</html>
