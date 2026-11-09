@@ -220,7 +220,7 @@ function ageTxt(iso){
 }
 function setAge(id,key,label){
   var a=ap(),g=ageTxt(a.updated[key]),el=$(id);
-  el.textContent=a[key]?(label+' pasted '+g.t+(g.old?' — CHECK IT IS CURRENT':'')):'';
+  el.textContent=a[key]?(label+' loaded '+g.t+(g.old?' — CHECK IT IS CURRENT':'')):'';
   el.className='age'+(g.old?' old':'');
 }
 function getWin(){

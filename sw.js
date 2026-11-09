@@ -1,7 +1,7 @@
-const CACHE = 'tfd-v6-0';
+const CACHE = 'tfd-v6-1';
 const LOCAL = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-180.png',
-  './overview.html', './airport.html', './airport.js', './ofp.js', './pdftext.js',
+  './overview.html', './airport.html', './airport.js', './ofp.js', './pdftext.js', './faa.js', './faa-bookmarklet.js',
   './vendor/leaflet.js', './vendor/leaflet.css', './vendor/pdf.min.js', './vendor/pdf.worker.min.js', './data/airports.json'
 ];
 const ASSETS = [
